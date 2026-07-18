@@ -1,6 +1,6 @@
 # ai-skills
 
-こざさが管理する、Codex / Claude Code向けの再利用可能なAIエージェントスキル集です。
+kozasaが管理する、Codex / Claude Code向けの再利用可能なAIエージェントスキル集です。
 
 ## Skills
 
