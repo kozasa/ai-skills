@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Loop"
+  short_description: "Converge reviews into a clear merge verdict"
+  default_prompt: "Use $review-loop to review the current branch, fix high-confidence findings, run quality gates, and report the merge verdict."
