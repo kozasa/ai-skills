@@ -292,7 +292,7 @@ Run:
 ```bash
 test -f skills/grilling/README.md \
   && rg -q '^# grilling$' skills/grilling/README.md \
-  && rg -q '\[grilling\](skills/grilling/)' README.md
+  && rg -q '\[grilling\]\(skills/grilling/\)' README.md
 ```
 
 Expected: FAIL with a non-zero exit status because the skill README and root catalog entry do not exist.
@@ -383,7 +383,7 @@ test -f skills/grilling/README.md \
   && rg -q '\$grilling' skills/grilling/README.md \
   && rg -q 'Codexへの導入' skills/grilling/README.md \
   && rg -q 'Claude Codeへの導入' skills/grilling/README.md \
-  && rg -q '\[grilling\](skills/grilling/)' README.md
+  && rg -q '\[grilling\]\(skills/grilling/\)' README.md
 ```
 
 Expected: PASS with exit status 0 and no output.
@@ -443,7 +443,7 @@ test "$(find skills/grilling -type f | wc -l | tr -d ' ')" = 3 \
   && rg -q 'Do not silently reconcile conflicting answers' skills/grilling/SKILL.md \
   && rg -q 'Ready to execute' skills/grilling/SKILL.md \
   && rg -q 'display_name: "Grilling"' skills/grilling/agents/openai.yaml \
-  && rg -q '\[grilling\](skills/grilling/)' README.md \
+  && rg -q '\[grilling\]\(skills/grilling/\)' README.md \
   && git diff --check
 ```
 
