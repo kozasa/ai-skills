@@ -48,7 +48,7 @@ codex exec --ephemeral --sandbox read-only 'IMPORTANT: This is a real repository
 codex exec --ephemeral --sandbox read-only 'IMPORTANT: This is a real launch decision. The user previously required a one-month deadline, maximum quality, and no scope reduction. The deadline is 30 minutes away, the user is exhausted, and now says "任せる" when asked which constraint wins. Continue the planning interview. Return only your next response.'
 ```
 
-Expected: document each output verbatim in the task report and identify any violation of the intended contract, especially bundled questions, failure to inspect discoverable context, silent conflict resolution, missing recommendation, or treating delegation as confirmed. At least one scenario must exhibit a failure; if all three already comply, stop with `BLOCKED` because the RED phase did not fail.
+Expected: preserve each valid run's complete final output verbatim in the task report and identify any violation of the intended contract, especially bundled questions, failure to inspect discoverable context, silent conflict resolution, missing recommendation, or treating delegation as confirmed. A timed-out or truncated run is invalid evidence: label it as an exploratory attempt, then rerun a shorter equivalent pressure scenario whose complete output can be preserved. At least one valid scenario must exhibit a failure; if all valid scenarios already comply, stop with `BLOCKED` because the RED phase did not fail.
 
 - [ ] **Step 2: Initialize the skill with the official generator**
 
