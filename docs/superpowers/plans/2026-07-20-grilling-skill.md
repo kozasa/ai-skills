@@ -235,16 +235,18 @@ test -f skills/grilling/agents/openai.yaml \
 
 Expected: FAIL with a non-zero exit status because the metadata file does not exist.
 
-- [ ] **Step 2: Create the Codex interface metadata**
+- [ ] **Step 2: Generate the Codex interface metadata with the official generator**
 
-Create `skills/grilling/agents/openai.yaml` with:
+Run:
 
-```yaml
-interface:
-  display_name: "Grilling"
-  short_description: "Stress-test a plan one decision at a time"
-  default_prompt: "Use $grilling to stress-test this plan one decision at a time, recommend an answer for every question, and finish with an execution-readiness verdict."
+```bash
+python3 /Users/kozasa/.codex/skills/.system/skill-creator/scripts/generate_openai_yaml.py skills/grilling \
+  --interface 'display_name=Grilling' \
+  --interface 'short_description=Stress-test a plan one decision at a time' \
+  --interface 'default_prompt=Use $grilling to stress-test this plan one decision at a time, recommend an answer for every question, and finish with an execution-readiness verdict.'
 ```
+
+Expected: `skills/grilling/agents/openai.yaml` is generated with the exact approved interface values and quoted YAML strings.
 
 - [ ] **Step 3: Run the metadata check and verify it passes**
 
