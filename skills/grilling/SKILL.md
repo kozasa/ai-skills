@@ -26,6 +26,7 @@ Keep research read-only. Do not modify files, publish, change sharing settings, 
 ## Interview Rules
 
 1. Ask exactly one decision question per turn, then wait for the answer.
+   One question means one independently answerable decision. Do not hide multiple requested details, subquestions, or checklist items under one top-level question. A prompt to fill multiple fields is multiple questions even when grouped into one sentence or template. Ask for one choice or approval only; infer or defer every dependent detail to separate later turns. After the one question, recommendation, reason, and optional confidence, end the turn; do not append requests for evidence, corrections, examples, elaboration, or additional details.
 2. Resolve the current decision-tree branch before opening another branch.
 3. With every question, provide:
    - the recommended answer;
