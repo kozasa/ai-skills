@@ -38,14 +38,17 @@ description: Use when implementation work is ready for a review-fix convergence 
   自分の記憶や直前の作業内容からの推測でレビューを代用してはならない。
 - **Codex の場合**: 毎ラウンド、必ず `codex exec` を起動し、フレッシュインスタンスで
   独立したレビューを行う。現在のセッションによる自己レビューへフォールバックしてはならない。
-  レビュー側は実装時の記憶を根拠にせず、`git diff` を最初から読み直す。
+  `scripts/codex_review.py` を使い、親側で固定したdiffを空の一時ディレクトリの子Codexへ渡す。
+  子Codexには追加探索しないよう指示するが、read-only sandboxはOSレベルのファイル読み取り禁止を
+  保証しない。親側で `codex exec` を直接組み立ててはならない。
   観点: (a) バグ・ロジック誤り (b) エッジケース・エラー処理 (c) セキュリティ
   (d) 既存コードとの不整合 (e) テストの妥当性。
-  起動コマンドには `--ephemeral --ignore-user-config --ignore-rules --sandbox read-only`、
-  作業ディレクトリを指定する `-C`、ラウンド固有の結果ファイルを指定する `-o` を付ける。
-  プロンプトの先頭には `[review-loop-child]` を入れ、子プロセスによる再帰起動を防ぐ。
-  終了コードが0で、レビュー結果ファイルが存在し、空でないことを確認してから分類へ進む。
-  `codex exec` を起動できない、またはレビュー結果を取得できない場合は、理由をログに記録し、
+  ラウンド固有の結果ファイルを指定して次の形式で実行する:
+  `python3 <skill-dir>/scripts/codex_review.py --repo <repo-root> --base <base-branch> --round <R> --output <result.json>`。
+  ランナーは `[review-loop-child]`、`--ephemeral`、read-only sandbox、空の作業ディレクトリ、
+  固定diff入力、標準出力の抑制、構造化出力、入力サイズ上限、タイムアウト、終了コード、
+  非空結果を強制する。
+  ランナーが失敗した場合は、理由をログに記録し、
   **打ち切り（独立レビューを実行できない）** とする。
 
 ### 2. 分類

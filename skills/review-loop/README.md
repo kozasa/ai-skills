@@ -9,6 +9,7 @@
 - フィックスはR1〜R5の最大5回
 - R6は追加フィックスを行わない最終確認レビュー
 - ループ内ではcommitしない
+- Codexでは固定したdiffを空の一時ディレクトリのread-only新規インスタンスへ渡してレビュー
 
 ## 最終マージ判定
 
@@ -52,4 +53,6 @@ Claude Codeだけで使う場合は、`skills/review-loop` を `~/.claude/skills
 ## ファイル構成
 
 - `SKILL.md`: スキル本体
+- `scripts/codex_review.py`: Codex向けの独立・境界付きレビューランナー
+- `tests/test_codex_review_runner.py`: ランナーの回帰テスト
 - `agents/openai.yaml`: Codex向けの表示情報と起動プロンプト
