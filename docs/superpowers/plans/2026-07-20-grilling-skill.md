@@ -19,6 +19,7 @@
 - Use no fixed question limit; completion depends on readiness criteria.
 - Render the three readiness verdicts in the user's language.
 - Do not add scripts, templates, references, automated test infrastructure, or changes to `review-loop`.
+- Keep `skills/grilling/README.md` as an explicit user-approved exception to the general skill-creator guidance because this public repository documents every distributed skill beside its package.
 
 ---
 
@@ -31,7 +32,40 @@
 - Consumes: explicit user intent such as `$grilling`, `grill this plan`, `grillして`, or a request to stress-test a plan before execution.
 - Produces: one recommended decision question per turn, maintained decision state, and one localized readiness verdict plus the required final sections.
 
-- [ ] **Step 1: Run the structural check and verify it fails before the skill exists**
+- [ ] **Step 1: Run RED-phase pressure scenarios without loading the new skill**
+
+Run each command before `skills/grilling/` exists:
+
+```bash
+codex exec --ephemeral --sandbox read-only 'IMPORTANT: This is a real planning session. The investor meeting is tomorrow, you have already spent eight hours on the plan, and the founder insists there is no time for a long exchange. Interview the founder until the plan has no important gaps. To save time, the founder asks you to put every unresolved question in your first message. Return only your first response.'
+```
+
+```bash
+codex exec --ephemeral --sandbox read-only 'IMPORTANT: This is a real repository-planning session with a 30-minute deadline. The repository contains the information needed to understand its existing package conventions, but the manager says inspection is probably unnecessary. Help plan a new reusable agent skill. Return only your first response.'
+```
+
+```bash
+codex exec --ephemeral --sandbox read-only 'IMPORTANT: This is a real launch decision. The user previously required a one-month deadline, maximum quality, and no scope reduction. The deadline is 30 minutes away, the user is exhausted, and now says "任せる" when asked which constraint wins. Continue the planning interview. Return only your next response.'
+```
+
+Expected: document each output verbatim in the task report and identify any violation of the intended contract, especially bundled questions, failure to inspect discoverable context, silent conflict resolution, missing recommendation, or treating delegation as confirmed. At least one scenario must exhibit a failure; if all three already comply, stop with `BLOCKED` because the RED phase did not fail.
+
+- [ ] **Step 2: Initialize the skill with the official generator**
+
+Run:
+
+```bash
+python3 /Users/kozasa/.codex/skills/.system/skill-creator/scripts/init_skill.py grilling --path skills \
+  --interface 'display_name=Grilling' \
+  --interface 'short_description=Stress-test a plan one decision at a time' \
+  --interface 'default_prompt=Use $grilling to stress-test this plan one decision at a time, recommend an answer for every question, and finish with an execution-readiness verdict.'
+```
+
+Expected: `skills/grilling/SKILL.md` and `skills/grilling/agents/openai.yaml` are generated successfully.
+
+Remove the generated `skills/grilling/agents/openai.yaml` before continuing so Task 2 remains an independent metadata task. Leave the empty `agents/` directory in place.
+
+- [ ] **Step 3: Run the structural check and verify the generated template fails the behavioral contract**
 
 Run:
 
@@ -43,9 +77,9 @@ test -f skills/grilling/SKILL.md \
   && rg -q 'Ready to execute' skills/grilling/SKILL.md
 ```
 
-Expected: FAIL with a non-zero exit status because `skills/grilling/SKILL.md` does not exist.
+Expected: FAIL with a non-zero exit status because the generated template does not contain the approved interview and readiness contracts.
 
-- [ ] **Step 2: Create the minimal complete skill instructions**
+- [ ] **Step 4: Replace the generated template with the minimal complete skill instructions**
 
 Create `skills/grilling/SKILL.md` with this complete content:
 
@@ -150,7 +184,7 @@ Then provide:
 Never use the `Ready to execute` state while a material unresolved decision or unverified critical assumption remains.
 ```
 
-- [ ] **Step 3: Run the structural check and verify it passes**
+- [ ] **Step 5: Run the structural check and verify it passes**
 
 Run:
 
@@ -166,7 +200,7 @@ test -f skills/grilling/SKILL.md \
 
 Expected: PASS with exit status 0 and no output.
 
-- [ ] **Step 4: Check formatting and commit the core skill**
+- [ ] **Step 6: Check formatting and commit the core skill**
 
 Run:
 
@@ -413,7 +447,19 @@ test "$(find skills/grilling -type f | wc -l | tr -d ' ')" = 3 \
 
 Expected: PASS with exit status 0 and no output.
 
-- [ ] **Step 3: Validate the activation boundary**
+- [ ] **Step 3: Re-run the RED pressure scenarios with the skill loaded**
+
+Re-run the three Task 1 scenarios, prefixing each prompt with `Read skills/grilling/SKILL.md and follow it.`
+
+Expected:
+
+- the deadline scenario asks exactly one question and includes a recommendation and reason despite the request to bundle everything;
+- the repository scenario inspects discoverable context before asking and asks only for a human judgment;
+- the contradiction scenario identifies the conflict, recommends a priority, records delegation as provisional, and asks exactly one resolution question.
+
+Record the outputs and comparison with the RED baselines in the task report. If a new rationalization or loophole appears, amend only the minimum necessary wording in `SKILL.md`, re-run the affected scenario, and commit the fix before proceeding.
+
+- [ ] **Step 4: Validate the activation boundary**
 
 Run from the repository root:
 
@@ -423,7 +469,7 @@ codex exec --sandbox read-only 'Read skills/grilling/SKILL.md and decide whether
 
 Expected: the response does not enter a relentless grilling interview merely from the generic planning request; it may answer normally or offer grilling as an option.
 
-- [ ] **Step 4: Validate research-before-asking behavior**
+- [ ] **Step 5: Validate research-before-asking behavior**
 
 Run from the repository root:
 
@@ -433,7 +479,7 @@ codex exec --sandbox read-only 'Read skills/grilling/SKILL.md and follow it. The
 
 Expected: the response inspects the repository context, asks exactly one judgment question with a recommendation and reason, and does not ask which skills or package structure already exist.
 
-- [ ] **Step 5: Validate a normal first grilling turn**
+- [ ] **Step 6: Validate a normal first grilling turn**
 
 Run from the repository root:
 
@@ -443,7 +489,7 @@ codex exec --sandbox read-only 'Read skills/grilling/SKILL.md and follow it. The
 
 Expected: the response asks exactly one decision question, includes a recommended answer and reason, and does not present a full plan or ask a list of questions.
 
-- [ ] **Step 6: Validate delegated-answer and contradiction handling**
+- [ ] **Step 7: Validate delegated-answer and contradiction handling**
 
 Run from the repository root:
 
@@ -453,7 +499,7 @@ codex exec --sandbox read-only 'Read skills/grilling/SKILL.md. Simulate the next
 
 Expected: the response identifies the conflict, recommends a priority, treats delegation as provisional rather than confirmed, and asks exactly one resolution question.
 
-- [ ] **Step 7: Validate the readiness gate**
+- [ ] **Step 8: Validate the readiness gate**
 
 Run from the repository root:
 
@@ -463,7 +509,7 @@ codex exec --sandbox read-only 'Read skills/grilling/SKILL.md. Produce the final
 
 Expected: the first verdict is `実行前に追加検討が必要`; unresolved decisions are listed; the response does not claim `実行準備完了`.
 
-- [ ] **Step 8: Review the final diff and history**
+- [ ] **Step 9: Review the final diff and history**
 
 Run:
 
