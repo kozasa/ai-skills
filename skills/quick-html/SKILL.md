@@ -1,6 +1,6 @@
 ---
 name: quick-html
-description: 入力 context からローカルHTMLを作る。判断依頼・完了報告、PR後の実装ストーリー、トピック・URL・ファイルパスの図解に使う。「解説ページ作って」「実装ストーリーを作って」「PRの経緯をHTMLでまとめて」、またはhuman-handoffからの呼び出しで発動。
+description: Use when creating a local HTML decision report, completion report, PR implementation story, or researched one-page explainer from normalized context, a topic, URL, or file path.
 ---
 
 # quick-html
@@ -13,7 +13,7 @@ description: 入力 context からローカルHTMLを作る。判断依頼・完
 処理開始前に必ずFAST、STORY、FULLのいずれかを決める。
 
 - **FAST**: `--fast <input.json>`、`type` が `decision` / `completion` の正規化JSON、または `human-handoff` からの呼び出し。
-- **STORY**: `--story <input.json>`、PR後の実装経緯、または `human-handoff` のImplementation Storyからの呼び出し。
+- **STORY**: `scripts/render_story.py --input <input.json> --output <index.html>`、PR後の実装経緯、または `human-handoff` のImplementation Story。
 - **FULL**: 上記以外のトピック文字列、URL、ローカルファイルパス、または本格的な調査・AI画像付き解説の依頼。
 
 曖昧な場合、既に十分なcontextがあり速度が目的ならFASTを選ぶ。追加調査や生成画像が成果物の価値に必要ならFULLを選ぶ。
@@ -38,29 +38,18 @@ python3 <skill-dir>/scripts/render_fast.py \
 
 ## STORY mode
 
-背景 → 依頼 → 判断 → 実装 → 結果の順で、PR後の文脈を短時間で復元できるEditorial Briefを生成する。Web調査や画像生成は行わない。
-
 ```bash
-python3 <skill-dir>/scripts/render_story.py \
-  --input /absolute/path/to/story.json \
-  --output /absolute/path/to/implementation-story-<slug>/index.html \
-  --open
+python3 <skill-dir>/scripts/render_story.py --input /absolute/story.json --output /absolute/implementation-story-<slug>/index.html
 ```
 
-Required root fields are `slug`, `title`, `summary`, `background`, `request`, `story`, `decisions`, `implementation`, `visuals`, `flow`, `verification`, `constraints`, and `references`. Use `tests/human_handoff/fixtures/implementation-story.json` as the complete contract example when working from this repository.
+The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
 
-- `story`: `{title, body, evidence}`
-- `decisions`: `{title, body, reason}`
-- `implementation`: `{title, body}`
-- `visuals`: `{title, type, path?, description}` where type is `actual`, `reconstructed`, or `screenshot`. Preview paths are relative to the input JSON directory. The renderer validates and copies each asset to the same relative location beside the output HTML. HTML previews run with `sandbox="allow-scripts"`.
-- `flow`: `{condition, result}`
-- `verification`: `{title, status, details}` where status is `passed`, `failed`, `warning`, or `unverified`.
-- `constraints`: strings
-- `references`: `{label, url, description}`. URL may be HTTPS, a safe relative path, or `null`; null renders as non-clickable.
-
-リポジトリ内は `output/implementation-story-<slug>/index.html` を既定にする。リポジトリ外では、PR URL・対象リポジトリのパス・直前セッションを入力にできる。保存不要ならOS一時領域、保存するなら `~/Documents/implementation-stories/<slug>/index.html` を使う。
-
-Do not externalize internal data, invent links, or label unexecuted checks as passed. If a preview is untrusted or cannot run under the sandbox, use a screenshot or a text-only visual entry.
+- `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`.
+- Keep Story First: background/request → Story → decisions → implementation → evidence → flow → verification/actions.
+- A reconstructed preview must display `コードから再構成した操作デモ`, use fictional data, include `aria-live`, and make no 外部通信. Embed it with `sandbox="allow-scripts"`.
+- Convert Mermaid during generation and provide a ローカルSVG. Do not load Mermaid or a CDN at viewing time. Keep HTML flow steps as a fallback.
+- Never invent a screen, link, test result, or recommendation. Mark unavailable evidence honestly.
+- Default output is `output/implementation-story-<slug>/index.html`; do not commit it unless asked.
 
 ## FULL mode
 

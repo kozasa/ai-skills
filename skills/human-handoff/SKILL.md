@@ -1,11 +1,11 @@
 ---
 name: human-handoff
-description: Use when one or more agents need a human decision, confirmation, prioritization, or exception judgment; when a complex completion report would be burdensome as prose; or after review-loop and PR creation when a human needs to recover an implementation's background, request, decisions, result, and evidence.
+description: Use when one or more agents need a human decision, confirmation, prioritization, or exception judgment; when a complex completion report would be burdensome as prose; or after review-loop and PR creation when a human needs to recover implementation context.
 ---
 
 # Human Handoff
 
-Present agent work so a human can understand and decide quickly. Choose ordinary prose, `$quick-html` FAST HTML, or an Implementation Story from the situation.
+Present agent work so a human can understand and decide quickly. Choose prose, `$quick-html` FAST HTML, or an Implementation Story.
 
 ## Workflow
 
@@ -15,10 +15,10 @@ Present agent work so a human can understand and decide quickly. Choose ordinary
 4. Compare formats:
    - Use **prose-only** for a short fact, one-line status, or obvious yes/no question with self-contained context.
    - Use FAST HTML when there are multiple decisions, alternatives, consequences, verification results, risks, or enough detail that scanning a page is faster than reading prose.
-   - Use **Implementation Story** after `review-loop` and PR creation when the human needs the PRの経緯: background, original request, important decisions, implementation, actual screen or structural evidence, verification, and references.
-5. Build the matching normalized JSON contract without inventing facts.
-6. Save it to a local JSON file and invoke `$quick-html` in FAST or Implementation Story mode.
-7. If rendering fails, return the available normalized content as concise Markdown and name the renderer failure. For FAST, include `title`, `summary`, `recommendation`, and `items`; for STORY, preserve the background → request → decisions → implementation → verification order.
+   - Use Implementation Story after `review-loop` and PR creation for non-trivial work.
+5. Build the matching normalized contract without inventing facts: the FAST contract below for `decision` or `completion`, and the STORY contract from `$quick-html` for `implementation-story`.
+6. Save it to a local JSON file and invoke `$quick-html` in FAST or STORY mode as classified.
+7. If rendering fails, return the matching normalized content as concise Markdown and name the renderer failure. Preserve Story First order for an Implementation Story.
 
 Do not reply to child agents, choose on the user's behalf, or automate the user's response. Do not delay an urgent decision for presentation work; fall back to concise prose when that is faster.
 
@@ -74,13 +74,10 @@ For a normal repository, write the result under `output/explainer-<slug>/index.h
 
 ## Implementation Story
 
-Trigger when the user says「実装ストーリーを作って」「このPRの経緯をHTMLでまとめて」「このセッションの成果物を見える化して」or asks for a post-PR human handoff. Prefer automatic use after `review-loop` and PR creation for non-trivial work.
+Keep Story First: judgment summary, background/request, Story, decisions, and implementation stay before visual evidence. The Story explains causality; evidence confirms it.
 
-Collect only evidence available in the current session, local Git checkout, and accessible PR/review metadata. Synthesize the causal story instead of copying the chat log or entire diff. Mark inferred or unavailable evidence honestly.
+Collect evidence in this order: authentication-free existing preview, automatically started local UI, usable existing signed-in session, interactive reconstructed HTML, then static explanation. If obtaining a screen requires 人間のログイン, credentials, or manual environment preparation, stop that attempt and use 再構成HTML. Never increase human work merely to obtain a screenshot.
 
-Pass the normalized JSON described by `$quick-html` to `scripts/render_story.py`.
+Reconstructed previews must say `コードから再構成した操作デモ` and use fictional data with no external communication. Reproduce the changed operation and state transitions, not the complete appearance. Label actual, screenshot, and reconstructed evidence honestly.
 
-- Inside a repository: default to `output/implementation-story-<slug>/index.html` and do not commit unless explicitly asked.
-- Outside a repository: accept a PR URL, repository path, or current-session context. Use an OS temporary directory for transient output, or `~/Documents/implementation-stories/<slug>/index.html` when the user asks to keep it.
-- For UI work, include a safe relative preview or screenshot when available. For non-UI work, use flow, diff, or verification evidence only when it improves understanding.
-- Do not claim a check passed without execution evidence. Use `unverified` when evidence is absent.
+Give an evidence-backed recommendation, but 最終判断は人間. Do not use `merge-recommended` if any blocking verification has not passed. Render with `$quick-html` STORY mode under `output/implementation-story-<slug>/`; do not commit generated output unless asked.

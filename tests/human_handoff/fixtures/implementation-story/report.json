@@ -1,0 +1,49 @@
+{
+  "slug": "bulk-shop-assignment",
+  "title": "対象ショップ未設定の商品を安全に一括設定",
+  "summary": "絞り込みに一致する商品を、確認範囲を超えずに一括設定する。",
+  "recommendation": {
+    "status": "conditional",
+    "reason": "自動検証は完了したが、本番操作は未確認。",
+    "unverified": ["本番環境での一括設定"],
+    "human_checks": ["対象件数とショップ名が意図どおりか確認する"]
+  },
+  "background": "従来は1件ずつ対象ショップを設定していた。",
+  "request": "現在の絞り込みに一致する全商品をまとめて設定したい。",
+  "story": [
+    {"title": "操作単位を決定", "body": "現在ページではなく絞り込み全体を採用した。", "evidence": "ユーザー確認"},
+    {"title": "競合条件を修正", "body": "対象集合固定と行ロック後の再評価を追加した。", "evidence": "review-loop"}
+  ],
+  "decisions": [
+    {"title": "全体ロールバック", "body": "途中失敗時は全件を戻す。", "reason": "部分更新を残さないため。"}
+  ],
+  "implementation": [
+    {"title": "一括設定フォーム", "body": "対象件数、ショップ選択、確認ダイアログを追加した。"}
+  ],
+  "impact": [
+    {"title": "運用負荷", "before": "1件ずつ設定", "after": "絞り込み単位で一括設定"}
+  ],
+  "visuals": [
+    {"title": "一括設定操作", "type": "reconstructed", "path": "previews/operation-demo.html", "description": "架空データで操作を確認する。"}
+  ],
+  "flow": {
+    "title": "一括設定の安全フロー",
+    "diagram_path": "diagrams/bulk-update.svg",
+    "description": "入力拒否、対象外、ロールバックを含む。",
+    "steps": [
+      {"condition": "ショップが無効", "result": "更新せずエラー"},
+      {"condition": "更新中に例外", "result": "全件ロールバック"}
+    ]
+  },
+  "verification": [
+    {"title": "対象テスト", "status": "passed", "details": "対象テスト成功。", "blocking": true},
+    {"title": "本番操作", "status": "unverified", "details": "未実施。", "blocking": false}
+  ],
+  "constraints": ["本番操作は未実施。"],
+  "next_actions": [
+    {"title": "本番確認", "body": "少数件で対象範囲を確認する。", "owner": "最終判断者", "timing": "マージ後"}
+  ],
+  "references": [
+    {"label": "設計書", "url": null, "description": "ローカル設計書。"}
+  ]
+}
