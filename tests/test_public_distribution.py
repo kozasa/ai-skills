@@ -8,12 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 class PublicDistributionTest(unittest.TestCase):
     def test_public_skill_packages_are_complete(self):
         required = (
-            "skills/human-facing-communication/SKILL.md",
-            "skills/human-facing-communication/README.md",
-            "skills/run-explainer-page/SKILL.md",
-            "skills/run-explainer-page/README.md",
-            "skills/run-explainer-page/scripts/render_fast.py",
-            "skills/run-explainer-page/templates/fast.html",
+            "skills/human-handoff/SKILL.md",
+            "skills/human-handoff/README.md",
+            "skills/quick-html/SKILL.md",
+            "skills/quick-html/README.md",
+            "skills/quick-html/scripts/render_fast.py",
+            "skills/quick-html/templates/fast.html",
         )
 
         missing = [path for path in required if not (ROOT / path).is_file()]
@@ -27,8 +27,8 @@ class PublicDistributionTest(unittest.TestCase):
             "~/.claude/skills",
             "AGENTS.md",
             "CLAUDE.md",
-            "human-facing-communication",
-            "run-explainer-page",
+            "human-handoff",
+            "quick-html",
             "エージェントにセットアップを依頼する",
         ):
             with self.subTest(expected=expected):
@@ -39,7 +39,7 @@ class PublicDistributionTest(unittest.TestCase):
 
         self.assertIn("人間の判断が必要な確認依頼", readme)
         self.assertIn("複雑な完了報告", readme)
-        self.assertIn("`human-facing-communication` skill を使う", readme)
+        self.assertIn("`human-handoff` skill を使う", readme)
 
 
 if __name__ == "__main__":

@@ -10,8 +10,8 @@ kozasaが管理する、Codex / Claude Code向けの再利用可能なAIエー�
 |---|---|
 | [grilling](skills/grilling/) | 計画や設計を一問ずつ厳しく検証し、実行可能な合意内容へ整理します。 |
 | [review-loop](skills/review-loop/) | レビューと修正を反復し、人間向けの最終マージ判定を提示します。 |
-| [human-facing-communication](skills/human-facing-communication/) | 確認依頼や複雑な完了報告を、人間が短時間で判断できる形式へ整理します。 |
-| [run-explainer-page](skills/run-explainer-page/) | 入力文脈から1枚 HTML を生成します。確認依頼向けの高速な FAST モードを含みます。 |
+| [human-handoff](skills/human-handoff/) | 確認依頼や複雑な完了報告を、人間が短時間で判断できる形式へ整理します。 |
+| [quick-html](skills/quick-html/) | 入力文脈から1枚 HTML を生成します。確認依頼向けの高速な FAST モードを含みます。 |
 
 詳しい使い方は、各スキルの README を参照してください。
 
@@ -31,19 +31,19 @@ cd ai-skills
 Codex:
 
 ```bash
-mkdir -p ~/.codex/skills/human-facing-communication
-mkdir -p ~/.codex/skills/run-explainer-page
-cp -R skills/human-facing-communication/. ~/.codex/skills/human-facing-communication/
-cp -R skills/run-explainer-page/. ~/.codex/skills/run-explainer-page/
+mkdir -p ~/.codex/skills/human-handoff
+mkdir -p ~/.codex/skills/quick-html
+cp -R skills/human-handoff/. ~/.codex/skills/human-handoff/
+cp -R skills/quick-html/. ~/.codex/skills/quick-html/
 ```
 
 Claude Code:
 
 ```bash
-mkdir -p ~/.claude/skills/human-facing-communication
-mkdir -p ~/.claude/skills/run-explainer-page
-cp -R skills/human-facing-communication/. ~/.claude/skills/human-facing-communication/
-cp -R skills/run-explainer-page/. ~/.claude/skills/run-explainer-page/
+mkdir -p ~/.claude/skills/human-handoff
+mkdir -p ~/.claude/skills/quick-html
+cp -R skills/human-handoff/. ~/.claude/skills/human-handoff/
+cp -R skills/quick-html/. ~/.claude/skills/quick-html/
 ```
 
 両方使う場合は、両方の配置先へコピーします。更新時も同じコピーコマンドを実行してください。
@@ -58,10 +58,10 @@ cp -R skills/run-explainer-page/. ~/.claude/skills/run-explainer-page/
 両方へ、次の同じ指示を追加してください。
 
 ```md
-## Human-facing communication
+## Human handoff
 
 人間の判断が必要な確認依頼がある場合、または複雑な完了報告を返す場合は、
-`human-facing-communication` skill を使う。
+`human-handoff` skill を使う。
 
 短い事実、一行の進捗、文脈が明白な単純な質問は通常の文章で返してよい。
 ```
@@ -83,14 +83,14 @@ Codex または Claude Code に、次の文章をそのまま渡せます。
 
 ```text
 https://github.com/kozasa/ai-skills から
-human-facing-communication と run-explainer-page をセットアップしてください。
+human-handoff と quick-html をセットアップしてください。
 
 要件:
 - 既存のファイルや指示を消さずに作業する
 - Codex では ~/.codex/skills、Claude Code では ~/.claude/skills へ配置する
 - 私が両方を使っている場合は両方へ配置する
 - 現在のリポジトリの AGENTS.md / CLAUDE.md が存在する場合は、README にある
-  Human-facing communication の自動発火ルールを、重複しないよう追記する
+  Human handoff の自動発火ルールを、重複しないよう追記する
 - リポジトリ共通ではなく全リポジトリで使いたいと伝えた場合は、
   ~/.codex/AGENTS.md / ~/.claude/CLAUDE.md へ同じルールを追記する
 - 最後に FAST モードでサンプル HTML を生成し、生成先を教える
@@ -103,7 +103,7 @@ human-facing-communication と run-explainer-page をセットアップしてく
 FAST renderer のテスト:
 
 ```bash
-python3 -m unittest discover -s tests/human_facing_communication -v
+python3 -m unittest discover -s tests/human_handoff -v
 ```
 
-サンプル HTML の生成方法は [run-explainer-page の README](skills/run-explainer-page/README.md) を参照してください。
+サンプル HTML の生成方法は [quick-html の README](skills/quick-html/README.md) を参照してください。
