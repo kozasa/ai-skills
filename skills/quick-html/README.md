@@ -1,31 +1,74 @@
 # quick-html
 
-正規化済みの判断依頼・完了報告・実装経緯を、依存関係のないローカルHTMLへ変換するスキルです。
+入力された文脈から、1枚の HTML 解説ページを生成するスキルです。
 
 ## モード
 
-- FAST: 判断依頼と完了報告を1枚HTMLへ変換
-- STORY: Story Firstの説明、触れる再構成HTML、ローカルSVG、検証結果をImplementation Storyへ変換
-- FULL: 調査や画像生成を含む本格的な解説ページ
+- **FAST**: 人間向けの確認依頼・完了報告を、調査や画像生成なしで即座にローカル HTML へ変換します。
+- **FULL**: トピック、URL、ローカルファイルをもとに、調査や図解を含む本格的な解説ページを作ります。
+- **STORY**: PR後の背景・依頼・判断・実装・結果を、Story FirstのローカルHTMLにまとめます。
 
-STORY modeは外部通信を許可せず、HTML、相対JavaScript module、CSS、画像、ローカル画面遷移、参照資料を入力ルート内で安全に同梱します。
+`human-handoff` から判断依頼・完了報告として呼ばれる場合はFAST、PR後の経緯整理として呼ばれる場合はSTORYを使います。STORYは相対JavaScript module、別画面、CSS、画像を入力ルート内で再帰的に解決し、外部通信なしのローカル資産として同梱します。
 
-## 起動例
+## FAST モードの特徴
 
-```bash
-python3 skills/quick-html/scripts/render_story.py \
-  --input /absolute/path/to/story.json \
-  --output output/implementation-story-example/index.html
+- Python 3 の標準ライブラリだけで動作
+- npm / pip install、CDN、ビルド工程が不要
+- 外部通信なし
+- 入力値を HTML エスケープ
+- 1ファイルの HTML を生成
+- 結論をタイトル直下とページ末尾の両方に表示
+
+## インストール
+
+ルートの [README](../../README.md) にある Codex / Claude Code 共通の手順を使ってください。
+
+## FAST モードを直接試す
+
+入力 JSON を用意します。
+
+```json
+{
+  "type": "decision",
+  "slug": "publish-scope",
+  "title": "公開範囲の確認",
+  "summary": "公開前に1件の判断が必要です。",
+  "recommendation": "最初は社内限定で公開することを推奨します。",
+  "items": [
+    {
+      "title": "社内限定",
+      "body": "フィードバックを集めてから外部公開します。",
+      "status": "recommended"
+    }
+  ]
+}
 ```
 
-## 導入
+次のコマンドで生成します。
 
-`skills/quick-html` を `~/.codex/skills/quick-html` または `~/.claude/skills/quick-html` へコピーしてください。
+```bash
+python3 ~/.codex/skills/quick-html/scripts/render_fast.py \
+  --input /absolute/path/to/input.json \
+  --output /tmp/explainer-publish-scope/index.html \
+  --open
+```
 
-## ファイル構成
+Claude Code 側だけへ導入した場合は、パスを `~/.claude/skills/quick-html/` に読み替えてください。
 
-- `SKILL.md`: orchestratorと入力契約
-- `scripts/render_fast.py`: FAST renderer
-- `scripts/render_story.py`: STORY renderer
-- `templates/`: ローカルHTMLテンプレート
-- `agents/openai.yaml`: Codex向け表示情報
+## STORY モードを直接試す
+
+完全な入力例はリポジトリの `tests/human_handoff/fixtures/implementation-story.json` にあります。
+`visuals[].path`は入力JSONからの相対パスです。レンダラーが存在を検証し、出力HTMLと同じ相対位置へコピーします。
+
+```bash
+python3 ~/.codex/skills/quick-html/scripts/render_story.py \
+  --input /absolute/path/to/implementation-story.json \
+  --output /tmp/implementation-story-sample/index.html \
+  --open
+```
+
+リポジトリ外からはPR URL、対象リポジトリのパス、または直前セッションを `human-handoff` に渡して正規化JSONを作成します。
+
+## 注意
+
+FULL モードは、参照先の画像生成・探索スキルなどが環境にない場合、その機能を利用できません。人間向け確認依頼を高速に HTML 化する FAST モードは単体で動作します。

@@ -1,0 +1,33 @@
+{
+  "slug": "invoice-search-state",
+  "title": "請求書一覧の検索状態を保持",
+  "summary": "検索条件をURLへ同期し、再訪時にも同じ状態を復元できるようにした。",
+  "background": "画面を離れると検索条件が失われ、並列PRの目的を後から把握しにくかった。",
+  "request": "検索条件を保持し、実装の経緯と結果をHTMLで確認できるようにする。",
+  "story": [
+    {"title": "問題を特定", "body": "画面遷移で状態が消えることを確認した。", "evidence": "元の依頼"},
+    {"title": "方式を決定", "body": "共有可能なURLへ状態を保存する方針にした。", "evidence": "設計判断"}
+  ],
+  "decisions": [
+    {"title": "URLへ同期", "body": "ローカル状態だけに保持しない。", "reason": "再訪と共有の両方で復元できるため。"}
+  ],
+  "implementation": [
+    {"title": "状態の読み書き", "body": "検索語とステータスだけを保存する。"}
+  ],
+  "visuals": [
+    {"title": "実装画面", "type": "reconstructed", "path": "previews/invoice.html", "description": "説明用に再構成した自己完結プレビュー。"}
+  ],
+  "flow": [
+    {"condition": "URLに条件あり", "result": "フォームと一覧を復元"},
+    {"condition": "URLに条件なし", "result": "初期状態を表示"}
+  ],
+  "verification": [
+    {"title": "単体テスト", "status": "passed", "details": "18件成功"},
+    {"title": "画面操作", "status": "unverified", "details": "未実行"}
+  ],
+  "constraints": ["架空のサンプルデータを使用する。"],
+  "references": [
+    {"label": "PR #142", "url": "https://github.com/example/repo/pull/142", "description": "架空PR"},
+    {"label": "元の指示", "url": null, "description": "参照不可"}
+  ]
+}

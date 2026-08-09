@@ -1,0 +1,36 @@
+{
+  "type": "completion",
+  "slug": "completed-work",
+  "title": "実装結果",
+  "summary": "FASTモードの実装と検証が完了しました。",
+  "recommendation": "実利用で読みやすさを確認してください。",
+  "items": [
+    {
+      "title": "変更",
+      "body": "固定テンプレートから一枚HTMLを生成します。",
+      "status": "neutral"
+    },
+    {
+      "title": "検証",
+      "body": "標準ライブラリのテストを実行しました。",
+      "status": "recommended"
+    },
+    {
+      "title": "残るリスク",
+      "body": "実際の長文入力では表示密度の調整が必要になる可能性があります。",
+      "status": "warning"
+    }
+  ],
+  "details": [
+    {
+      "title": "非対象",
+      "body": "子エージェントへの回答送信は実装していません。"
+    }
+  ],
+  "sources": [
+    {
+      "label": "実装計画",
+      "url": "docs/superpowers/plans/2026-08-09-human-handoff.md"
+    }
+  ]
+}
