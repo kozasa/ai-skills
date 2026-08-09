@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run Explainer Page"
+  short_description: "Create a fast or fully researched one-page HTML explanation"
+  default_prompt: "Use $run-explainer-page to explain the supplied context as a one-page HTML document."

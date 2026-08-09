@@ -1,0 +1,4 @@
+interface:
+  display_name: "Human-Facing Communication"
+  short_description: "Present complex agent decisions and results clearly"
+  default_prompt: "Use $human-facing-communication to present this decision or completion report in the clearest low-friction format."

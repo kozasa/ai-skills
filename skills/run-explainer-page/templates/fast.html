@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --ink: light-dark(#1a1a1a, #f2f0e8);
+    --ink-2: light-dark(#555247, #bbb7aa);
+    --bg: light-dark(#f7f5ee, #171816);
+    --paper: light-dark(#fbf9f1, #232421);
+    --line: light-dark(#d8d2bf, #44463f);
+    --accent: #10a37f;
+    --accent-soft: light-dark(#d8efe5, #173f34);
+    --warn: light-dark(#b73529, #ff8d80);
+    --warn-soft: light-dark(#f6dcd6, #4b2824);
+    --neutral-soft: light-dark(#efeadb, #30312d);
+    --shadow: 0 1px 0 rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+    --sans: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
+            "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans); background: var(--bg); color: var(--ink);
+    line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 26px 80px; }
+  .hero { margin-bottom: 36px; }
+  .kicker {
+    display: inline-block; margin-bottom: 16px; padding: 5px 11px;
+    border-radius: 999px; background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700; letter-spacing: .12em;
+  }
+  h1 { margin: 0 0 12px; font-size: clamp(29px, 5vw, 42px); line-height: 1.3; }
+  .lede { max-width: 760px; margin: 0; color: var(--ink-2); font-size: 18px; }
+  section { margin-top: 44px; }
+  section > h2 { margin: 0 0 16px; padding-left: 12px; border-left: 6px solid var(--accent); font-size: 25px; }
+  .items { display: grid; gap: 12px; }
+  .item { padding: 16px 18px; border-left: 4px solid var(--line); background: var(--paper); }
+  .item.recommended { border-color: var(--accent); background: var(--accent-soft); }
+  .item.warning { border-color: var(--warn); background: var(--warn-soft); }
+  .item h3 { margin: 0 0 4px; font-size: 17px; }
+  .item p { margin: 0; white-space: pre-wrap; }
+  .recommendation { margin: 18px 0 0; padding: 16px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); }
+  .recommendation strong { color: var(--accent); }
+  details { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  summary { cursor: pointer; font-weight: 700; }
+  details p { margin: 8px 0 0; white-space: pre-wrap; }
+  .sources { margin: 0; padding-left: 20px; color: var(--ink-2); }
+  .sources code { overflow-wrap: anywhere; }
+  .conclusion { margin-top: 48px; padding: 24px; border-radius: 14px; background: var(--ink); color: var(--bg); }
+  .conclusion h2 { margin: 0 0 8px; padding: 0; border: 0; font-size: 23px; }
+  .conclusion p { margin: 0; }
+  .hero .conclusion { margin: 18px 0; }
+  .empty { color: var(--ink-2); }
+  footer { margin-top: 28px; color: var(--ink-2); font-size: 13px; }
+  @media (max-width: 640px) {
+    .wrap { padding: 30px 18px 58px; }
+    .lede { font-size: 16px; }
+    section { margin-top: 34px; }
+  }
+  @media print {
+    body { background: #fff; color: #111; }
+    .wrap { max-width: none; padding: 20px; }
+    details > * { display: block; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <span class="kicker">{{KICKER}}</span>
+    <h1>{{TITLE}}</h1>
+    {{TOP_CONCLUSION}}
+    <p class="lede">{{SUMMARY}}</p>
+  </header>
+
+  <section aria-labelledby="items-title">
+    <h2 id="items-title">{{ITEMS_TITLE}}</h2>
+    <div class="items">{{ITEMS}}</div>
+  </section>
+
+  {{DETAILS}}
+  {{SOURCES}}
+
+  {{BOTTOM_CONCLUSION}}
+  <footer>run-explainer-page · FAST mode</footer>
+</main>
+</body>
+</html>
