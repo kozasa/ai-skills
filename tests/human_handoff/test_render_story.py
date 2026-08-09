@@ -87,6 +87,30 @@ class StoryRendererTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("preview asset not found", result.stderr)
 
+    def test_existing_output_symlink_cannot_overwrite_external_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            output = root / "output"
+            (source / "previews").mkdir(parents=True)
+            (output / "previews").mkdir(parents=True)
+            payload = self.fixture()
+            input_json = source / "story.json"
+            input_json.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            (source / "previews/invoice.html").write_text("SAFE PREVIEW", encoding="utf-8")
+            victim = root / "victim.html"
+            victim.write_text("ORIGINAL", encoding="utf-8")
+            (output / "previews/invoice.html").symlink_to(victim)
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--input", str(input_json), "--output", str(output / "index.html")],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("symlink", result.stderr)
+            self.assertEqual(victim.read_text(encoding="utf-8"), "ORIGINAL")
+
     def test_windows_open_uses_startfile_without_shell(self):
         spec = importlib.util.spec_from_file_location("render_story", SCRIPT)
         module = importlib.util.module_from_spec(spec)

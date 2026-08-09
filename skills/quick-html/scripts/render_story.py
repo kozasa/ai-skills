@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from typing import Any
 from urllib.parse import urlparse
 
@@ -250,8 +251,17 @@ def _stage_visuals(payload: dict[str, Any], input_path: Path, output_path: Path)
         resolved_parent = target.parent.resolve()
         if not _is_within(resolved_parent, output_root):
             raise ContractError(f"visuals[{index}].path must stay inside the output directory")
+        if target.is_symlink():
+            raise ContractError(f"visuals[{index}].path must not target a symlink")
         if source != target.resolve():
-            shutil.copy2(source, target)
+            descriptor, temporary_name = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+            os.close(descriptor)
+            temporary = Path(temporary_name)
+            try:
+                shutil.copy2(source, temporary)
+                temporary.replace(target)
+            finally:
+                temporary.unlink(missing_ok=True)
 
 
 def _open_file(path: Path) -> None:
