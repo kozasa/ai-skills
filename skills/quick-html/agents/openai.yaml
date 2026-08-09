@@ -1,4 +1,4 @@
 interface:
-  display_name: "Run Explainer Page"
-  short_description: "Create a fast or fully researched one-page HTML explanation"
-  default_prompt: "Use $quick-html to explain the supplied context as a one-page HTML document."
+  display_name: "Quick HTML"
+  short_description: "Create fast reports, implementation stories, or full HTML explainers"
+  default_prompt: "Use $quick-html to turn the supplied context into the appropriate local HTML report."

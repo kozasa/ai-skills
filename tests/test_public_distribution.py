@@ -13,7 +13,9 @@ class PublicDistributionTest(unittest.TestCase):
             "skills/quick-html/SKILL.md",
             "skills/quick-html/README.md",
             "skills/quick-html/scripts/render_fast.py",
+            "skills/quick-html/scripts/render_story.py",
             "skills/quick-html/templates/fast.html",
+            "skills/quick-html/templates/story.html",
         )
 
         missing = [path for path in required if not (ROOT / path).is_file()]
