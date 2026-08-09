@@ -1,6 +1,6 @@
 ---
 name: quick-html
-description: 入力 context から1枚HTML解説ページを作る。正規化済みの人間向け判断依頼・完了報告は調査や画像生成を省くFAST mode、トピック・URL・ファイルパスから本格的な図解資料を作る場合はFULL modeを使う。「解説ページ作って」「explainer page」、またはhuman-handoffからの呼び出しで発動。
+description: 入力 context からローカルHTMLを作る。判断依頼・完了報告、PR後の実装ストーリー、トピック・URL・ファイルパスの図解に使う。「解説ページ作って」「実装ストーリーを作って」「PRの経緯をHTMLでまとめて」、またはhuman-handoffからの呼び出しで発動。
 ---
 
 # quick-html
@@ -10,9 +10,10 @@ description: 入力 context から1枚HTML解説ページを作る。正規化�
 
 ## Mode selection
 
-処理開始前に必ずFASTかFULLかを決める。
+処理開始前に必ずFAST、STORY、FULLのいずれかを決める。
 
 - **FAST**: `--fast <input.json>`、`type` が `decision` / `completion` の正規化JSON、または `human-handoff` からの呼び出し。
+- **STORY**: `--story <input.json>`、PR後の実装経緯、または `human-handoff` のImplementation Storyからの呼び出し。
 - **FULL**: 上記以外のトピック文字列、URL、ローカルファイルパス、または本格的な調査・AI画像付き解説の依頼。
 
 曖昧な場合、既に十分なcontextがあり速度が目的ならFASTを選ぶ。追加調査や生成画像が成果物の価値に必要ならFULLを選ぶ。
@@ -34,6 +35,32 @@ python3 <skill-dir>/scripts/render_fast.py \
 - 入力内容を補完・推測せず、足りない確証は未確認と明記した状態で渡す。
 - rendererが失敗した場合は、`title`、`summary`、`recommendation`、`items` を簡潔なMarkdownで返し、HTML失敗を報告する。
 - `--open` だけが失敗した場合もHTMLは生成済みなので、ローカルパスを返す。
+
+## STORY mode
+
+背景 → 依頼 → 判断 → 実装 → 結果の順で、PR後の文脈を短時間で復元できるEditorial Briefを生成する。Web調査や画像生成は行わない。
+
+```bash
+python3 <skill-dir>/scripts/render_story.py \
+  --input /absolute/path/to/story.json \
+  --output /absolute/path/to/implementation-story-<slug>/index.html \
+  --open
+```
+
+Required root fields are `slug`, `title`, `summary`, `background`, `request`, `story`, `decisions`, `implementation`, `visuals`, `flow`, `verification`, `constraints`, and `references`. Use `tests/human_handoff/fixtures/implementation-story.json` as the complete contract example when working from this repository.
+
+- `story`: `{title, body, evidence}`
+- `decisions`: `{title, body, reason}`
+- `implementation`: `{title, body}`
+- `visuals`: `{title, type, path?, description}` where type is `actual`, `reconstructed`, or `screenshot`. Preview paths must be safe relative paths. HTML previews run with `sandbox="allow-scripts"`.
+- `flow`: `{condition, result}`
+- `verification`: `{title, status, details}` where status is `passed`, `failed`, `warning`, or `unverified`.
+- `constraints`: strings
+- `references`: `{label, url, description}`. URL may be HTTPS, a safe relative path, or `null`; null renders as non-clickable.
+
+リポジトリ内は `output/implementation-story-<slug>/index.html` を既定にする。リポジトリ外では、PR URL・対象リポジトリのパス・直前セッションを入力にできる。保存不要ならOS一時領域、保存するなら `~/Documents/implementation-stories/<slug>/index.html` を使う。
+
+Do not externalize internal data, invent links, or label unexecuted checks as passed. If a preview is untrusted or cannot run under the sandbox, use a screenshot or a text-only visual entry.
 
 ## FULL mode
 

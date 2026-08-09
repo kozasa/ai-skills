@@ -6,6 +6,7 @@
 
 - **FAST**: 人間向けの確認依頼・完了報告を、調査や画像生成なしで即座にローカル HTML へ変換します。
 - **FULL**: トピック、URL、ローカルファイルをもとに、調査や図解を含む本格的な解説ページを作ります。
+- **STORY**: PR後の背景・依頼・判断・実装・結果を、Story FirstのローカルHTMLにまとめます。
 
 `human-handoff` から呼ばれる場合は FAST モードを使います。
 
@@ -53,6 +54,19 @@ python3 ~/.codex/skills/quick-html/scripts/render_fast.py \
 ```
 
 Claude Code 側だけへ導入した場合は、パスを `~/.claude/skills/quick-html/` に読み替えてください。
+
+## STORY モードを直接試す
+
+完全な入力例はリポジトリの `tests/human_handoff/fixtures/implementation-story.json` にあります。
+
+```bash
+python3 ~/.codex/skills/quick-html/scripts/render_story.py \
+  --input /absolute/path/to/implementation-story.json \
+  --output /tmp/implementation-story-sample/index.html \
+  --open
+```
+
+リポジトリ外からはPR URL、対象リポジトリのパス、または直前セッションを `human-handoff` に渡して正規化JSONを作成します。
 
 ## 注意
 

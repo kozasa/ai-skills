@@ -10,8 +10,8 @@ kozasaが管理する、Codex / Claude Code向けの再利用可能なAIエー�
 |---|---|
 | [grilling](skills/grilling/) | 計画や設計を一問ずつ厳しく検証し、実行可能な合意内容へ整理します。 |
 | [review-loop](skills/review-loop/) | レビューと修正を反復し、人間向けの最終マージ判定を提示します。 |
-| [human-handoff](skills/human-handoff/) | 確認依頼や複雑な完了報告を、人間が短時間で判断できる形式へ整理します。 |
-| [quick-html](skills/quick-html/) | 入力文脈から1枚 HTML を生成します。確認依頼向けの高速な FAST モードを含みます。 |
+| [human-handoff](skills/human-handoff/) | 確認依頼、複雑な完了報告、PR後の実装ストーリーを、人間が短時間で理解できる形式へ整理します。 |
+| [quick-html](skills/quick-html/) | 入力文脈からローカルHTMLを生成します。FAST、STORY、FULLモードを含みます。 |
 
 詳しい使い方は、各スキルの README を参照してください。
 
@@ -60,7 +60,7 @@ cp -R skills/quick-html/. ~/.claude/skills/quick-html/
 ```md
 ## Human handoff
 
-人間の判断が必要な確認依頼がある場合、または複雑な完了報告を返す場合は、
+人間の判断が必要な確認依頼、複雑な完了報告、またはreview-loop後のPR実装ストーリーを返す場合は、
 `human-handoff` skill を使う。
 
 短い事実、一行の進捗、文脈が明白な単純な質問は通常の文章で返してよい。
