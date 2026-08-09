@@ -18,7 +18,7 @@ Present agent work so a human can understand and decide quickly. Choose ordinary
    - Use **Implementation Story** after `review-loop` and PR creation when the human needs the PRの経緯: background, original request, important decisions, implementation, actual screen or structural evidence, verification, and references.
 5. Build the matching normalized JSON contract without inventing facts.
 6. Save it to a local JSON file and invoke `$quick-html` in FAST or Implementation Story mode.
-7. If rendering fails, return `title`, `summary`, `recommendation`, and `items` as concise Markdown and name the renderer failure.
+7. If rendering fails, return the available normalized content as concise Markdown and name the renderer failure. For FAST, include `title`, `summary`, `recommendation`, and `items`; for STORY, preserve the background → request → decisions → implementation → verification order.
 
 Do not reply to child agents, choose on the user's behalf, or automate the user's response. Do not delay an urgent decision for presentation work; fall back to concise prose when that is faster.
 

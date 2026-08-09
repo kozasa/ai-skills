@@ -66,7 +66,7 @@ cp -R skills/quick-html/. ~/.claude/skills/quick-html/
 短い事実、一行の進捗、文脈が明白な単純な質問は通常の文章で返してよい。
 ```
 
-この設定により、単純な返答まで毎回 HTML になることを避けつつ、読む負担が大きい場面だけ FAST HTML を使えます。
+この設定により、単純な返答まで毎回HTMLになることを避けつつ、読む負担が大きい判断・完了報告にはFAST、PR後の経緯整理にはSTORYを使えます。
 
 ### すべてのリポジトリで使う場合
 
@@ -93,14 +93,14 @@ human-handoff と quick-html をセットアップしてください。
   Human handoff の自動発火ルールを、重複しないよう追記する
 - リポジトリ共通ではなく全リポジトリで使いたいと伝えた場合は、
   ~/.codex/AGENTS.md / ~/.claude/CLAUDE.md へ同じルールを追記する
-- 最後に FAST モードでサンプル HTML を生成し、生成先を教える
+- 最後にFASTまたはSTORYモードでサンプルHTMLを生成し、生成先を教える
 ```
 
 エージェントには、既存の指示ファイルを上書きせず追記・統合するよう明記しています。
 
 ## 動作確認
 
-FAST renderer のテスト:
+FAST / STORY renderer のテスト:
 
 ```bash
 python3 -m unittest discover -s tests/human_handoff -v

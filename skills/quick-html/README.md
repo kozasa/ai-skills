@@ -8,7 +8,7 @@
 - **FULL**: トピック、URL、ローカルファイルをもとに、調査や図解を含む本格的な解説ページを作ります。
 - **STORY**: PR後の背景・依頼・判断・実装・結果を、Story FirstのローカルHTMLにまとめます。
 
-`human-handoff` から呼ばれる場合は FAST モードを使います。
+`human-handoff` から判断依頼・完了報告として呼ばれる場合はFAST、PR後の経緯整理として呼ばれる場合はSTORYを使います。
 
 ## FAST モードの特徴
 
@@ -58,6 +58,7 @@ Claude Code 側だけへ導入した場合は、パスを `~/.claude/skills/quic
 ## STORY モードを直接試す
 
 完全な入力例はリポジトリの `tests/human_handoff/fixtures/implementation-story.json` にあります。
+`visuals[].path`は入力JSONからの相対パスです。レンダラーが存在を検証し、出力HTMLと同じ相対位置へコピーします。
 
 ```bash
 python3 ~/.codex/skills/quick-html/scripts/render_story.py \

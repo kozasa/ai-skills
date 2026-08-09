@@ -52,7 +52,7 @@ Required root fields are `slug`, `title`, `summary`, `background`, `request`, `s
 - `story`: `{title, body, evidence}`
 - `decisions`: `{title, body, reason}`
 - `implementation`: `{title, body}`
-- `visuals`: `{title, type, path?, description}` where type is `actual`, `reconstructed`, or `screenshot`. Preview paths must be safe relative paths. HTML previews run with `sandbox="allow-scripts"`.
+- `visuals`: `{title, type, path?, description}` where type is `actual`, `reconstructed`, or `screenshot`. Preview paths are relative to the input JSON directory. The renderer validates and copies each asset to the same relative location beside the output HTML. HTML previews run with `sandbox="allow-scripts"`.
 - `flow`: `{condition, result}`
 - `verification`: `{title, status, details}` where status is `passed`, `failed`, `warning`, or `unverified`.
 - `constraints`: strings

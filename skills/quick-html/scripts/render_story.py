@@ -69,6 +69,8 @@ def _strings(value: Any, path: str) -> list[str]:
 
 
 def _safe_relative_path(value: str, path: str) -> str:
+    if "\\" in value or "%" in value or any(ord(character) < 32 for character in value):
+        raise ContractError(f"{path} must be a safe relative path")
     candidate = PurePosixPath(value)
     if (
         not value.strip()
@@ -222,13 +224,44 @@ def render(payload: dict[str, Any], template: str) -> str:
     return marker_pattern.sub(lambda match: replacements[match.group(0)], template)
 
 
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _stage_visuals(payload: dict[str, Any], input_path: Path, output_path: Path) -> None:
+    source_root = input_path.resolve().parent
+    output_root = output_path.resolve().parent
+    output_root.mkdir(parents=True, exist_ok=True)
+    for index, item in enumerate(payload["visuals"]):
+        relative = item.get("path")
+        if not relative:
+            continue
+        source = (source_root / relative).resolve()
+        if not _is_within(source, source_root):
+            raise ContractError(f"visuals[{index}].path must stay inside the input directory")
+        if not source.is_file():
+            raise ContractError(f"visuals[{index}] preview asset not found: {relative}")
+        target = output_root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        resolved_parent = target.parent.resolve()
+        if not _is_within(resolved_parent, output_root):
+            raise ContractError(f"visuals[{index}].path must stay inside the output directory")
+        if source != target.resolve():
+            shutil.copy2(source, target)
+
+
 def _open_file(path: Path) -> None:
     if sys.platform == "darwin":
         command = ["open", str(path)]
     elif sys.platform.startswith("linux"):
         command = ["xdg-open", str(path)]
     elif sys.platform == "win32":
-        command = ["cmd", "/c", "start", "", str(path)]
+        os.startfile(str(path))
+        return
     else:
         raise ContractError(f"no opener configured for {sys.platform}")
     if shutil.which(command[0]) is None:
@@ -248,7 +281,7 @@ def main() -> int:
         payload = validate_payload(json.loads(args.input.read_text(encoding="utf-8")))
         template = (Path(__file__).resolve().parents[1] / "templates/story.html").read_text(encoding="utf-8")
         page = render(payload, template)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
+        _stage_visuals(payload, args.input, args.output)
         temporary = args.output.with_name(f".{args.output.name}.{os.getpid()}.tmp")
         temporary.write_text(page, encoding="utf-8")
         temporary.replace(args.output)
