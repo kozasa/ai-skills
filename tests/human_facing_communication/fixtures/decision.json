@@ -1,0 +1,36 @@
+{
+  "type": "decision",
+  "slug": "agent-confirmations",
+  "title": "確認したいこと",
+  "summary": "3件の判断が必要です。",
+  "recommendation": "推奨案を上から確認してください。",
+  "items": [
+    {
+      "title": "公開範囲",
+      "body": "社内限定を推奨します。",
+      "status": "recommended"
+    },
+    {
+      "title": "危険な入力",
+      "body": "<script>alert(1)</script> を文字として表示します。",
+      "status": "warning"
+    },
+    {
+      "title": "実行時期",
+      "body": "次回作業時に実行します。",
+      "status": "neutral"
+    }
+  ],
+  "details": [
+    {
+      "title": "判断材料",
+      "body": "外部公開には追加レビューが必要です。"
+    }
+  ],
+  "sources": [
+    {
+      "label": "設計書",
+      "url": "docs/design.md"
+    }
+  ]
+}
