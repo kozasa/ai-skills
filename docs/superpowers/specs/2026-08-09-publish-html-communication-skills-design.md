@@ -2,7 +2,7 @@
 
 ## Conclusion
 
-`ai-skills` を `human-facing-communication` と `run-explainer-page` の公開配布上の正本とし、利用者とエージェントのどちらでも再現できる導入手順を README に含める。
+`ai-skills` を `human-handoff` と `quick-html` の公開配布上の正本とし、利用者とエージェントのどちらでも再現できる導入手順を README に含める。
 
 ## Goal
 
@@ -33,8 +33,8 @@ Codex / Claude Code の利用者が、任意のリポジトリで人間向けの
 
 - FAST モードは Python 標準ライブラリだけで動作する。
 - HTML はローカル生成のみで、外部送信や外部アセット取得を行わない。
-- `human-facing-communication` は判断を代行せず、人間向け情報の整理と提示だけを担う。
-- `run-explainer-page` は FAST / FULL の既存契約を維持する。
+- `human-handoff` は判断を代行せず、人間向け情報の整理と提示だけを担う。
+- `quick-html` は FAST / FULL の既存契約を維持する。
 
 ## Verification
 

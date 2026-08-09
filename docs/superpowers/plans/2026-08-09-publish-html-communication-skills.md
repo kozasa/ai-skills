@@ -32,10 +32,10 @@
 ### Task 2: Publish the two skill packages
 
 **Files:**
-- Create: `skills/human-facing-communication/**`
-- Create: `skills/run-explainer-page/**`
-- Create: `skills/human-facing-communication/README.md`
-- Create: `skills/run-explainer-page/README.md`
+- Create: `skills/human-handoff/**`
+- Create: `skills/quick-html/**`
+- Create: `skills/human-handoff/README.md`
+- Create: `skills/quick-html/README.md`
 
 **Interfaces:**
 - Consumes: verified skill sources in `/Users/kozasa/orca/workspaces/Research/tuskfish/skills/`

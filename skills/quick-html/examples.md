@@ -1,17 +1,17 @@
-# run-explainer-page examples
+# quick-html examples
 
 ## FAST mode
 
 正規化済みの確認依頼を調査・画像生成なしでHTML化する:
 
 ```bash
-python3 skills/run-explainer-page/scripts/render_fast.py \
+python3 skills/quick-html/scripts/render_fast.py \
   --input /tmp/agent-confirmations.json \
   --output output/explainer-agent-confirmations/index.html \
   --open
 ```
 
-入力JSONの `type` は `decision` または `completion`。契約の正本は `scripts/render_fast.py` と `human-facing-communication` skillに置く。
+入力JSONの `type` は `decision` または `completion`。契約の正本は `scripts/render_fast.py` と `human-handoff` skillに置く。
 
 ## 参考の最終成果物
 

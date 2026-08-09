@@ -1,9 +1,9 @@
 ---
-name: run-explainer-page
-description: 入力 context から1枚HTML解説ページを作る。正規化済みの人間向け判断依頼・完了報告は調査や画像生成を省くFAST mode、トピック・URL・ファイルパスから本格的な図解資料を作る場合はFULL modeを使う。「解説ページ作って」「explainer page」、またはhuman-facing-communicationからの呼び出しで発動。
+name: quick-html
+description: 入力 context から1枚HTML解説ページを作る。正規化済みの人間向け判断依頼・完了報告は調査や画像生成を省くFAST mode、トピック・URL・ファイルパスから本格的な図解資料を作る場合はFULL modeを使う。「解説ページ作って」「explainer page」、またはhuman-handoffからの呼び出しで発動。
 ---
 
-# run-explainer-page
+# quick-html
 
 ユーザー入力 (topic 文字列 / URL / ファイルパス / 直前会話) を起点に、
 **1 枚 HTML の図解付き解説ページ** を生成する orchestrator。
@@ -12,7 +12,7 @@ description: 入力 context から1枚HTML解説ページを作る。正規化�
 
 処理開始前に必ずFASTかFULLかを決める。
 
-- **FAST**: `--fast <input.json>`、`type` が `decision` / `completion` の正規化JSON、または `human-facing-communication` からの呼び出し。
+- **FAST**: `--fast <input.json>`、`type` が `decision` / `completion` の正規化JSON、または `human-handoff` からの呼び出し。
 - **FULL**: 上記以外のトピック文字列、URL、ローカルファイルパス、または本格的な調査・AI画像付き解説の依頼。
 
 曖昧な場合、既に十分なcontextがあり速度が目的ならFASTを選ぶ。追加調査や生成画像が成果物の価値に必要ならFULLを選ぶ。
@@ -56,7 +56,7 @@ python3 <skill-dir>/scripts/render_fast.py \
 
 | 用途 | 使うスキル |
 |---|---|
-| **figure 付き 1 枚 HTML 解説ページ** | **`run-explainer-page`** ← この skill |
+| **figure 付き 1 枚 HTML 解説ページ** | **`quick-html`** ← この skill |
 | SEO ブログ記事 (Markdown) | `run-seo-blog` |
 | スライド (PDF) | `run-slide` |
 | 説明画像 4 並列 (HTML 化なし) | `wrap-ai-image-detail-illustration` |

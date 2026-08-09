@@ -1,4 +1,4 @@
-# run-explainer-page
+# quick-html
 
 入力された文脈から、1枚の HTML 解説ページを生成するスキルです。
 
@@ -7,7 +7,7 @@
 - **FAST**: 人間向けの確認依頼・完了報告を、調査や画像生成なしで即座にローカル HTML へ変換します。
 - **FULL**: トピック、URL、ローカルファイルをもとに、調査や図解を含む本格的な解説ページを作ります。
 
-`human-facing-communication` から呼ばれる場合は FAST モードを使います。
+`human-handoff` から呼ばれる場合は FAST モードを使います。
 
 ## FAST モードの特徴
 
@@ -46,13 +46,13 @@
 次のコマンドで生成します。
 
 ```bash
-python3 ~/.codex/skills/run-explainer-page/scripts/render_fast.py \
+python3 ~/.codex/skills/quick-html/scripts/render_fast.py \
   --input /absolute/path/to/input.json \
   --output /tmp/explainer-publish-scope/index.html \
   --open
 ```
 
-Claude Code 側だけへ導入した場合は、パスを `~/.claude/skills/run-explainer-page/` に読み替えてください。
+Claude Code 側だけへ導入した場合は、パスを `~/.claude/skills/quick-html/` に読み替えてください。
 
 ## 注意
 

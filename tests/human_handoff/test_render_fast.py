@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "skills/run-explainer-page/scripts/render_fast.py"
+SCRIPT = ROOT / "skills/quick-html/scripts/render_fast.py"
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -181,7 +181,7 @@ class FastRendererTest(unittest.TestCase):
         self.assertGreater(last_conclusion, last_section)
 
     def test_skill_declares_fast_and_full_routes(self):
-        skill = (ROOT / "skills/run-explainer-page/SKILL.md").read_text(
+        skill = (ROOT / "skills/quick-html/SKILL.md").read_text(
             encoding="utf-8"
         )
         self.assertIn("## FAST mode", skill)
@@ -190,14 +190,14 @@ class FastRendererTest(unittest.TestCase):
         self.assertIn("Do not run Phase 1 or Phase 3", skill)
 
     def test_judgment_skill_has_required_triggers_and_boundaries(self):
-        skill = (ROOT / "skills/human-facing-communication/SKILL.md").read_text(
+        skill = (ROOT / "skills/human-handoff/SKILL.md").read_text(
             encoding="utf-8"
         )
         required = [
             "human decision",
             "completion report",
             "prose-only",
-            "$run-explainer-page",
+            "$quick-html",
             "Do not reply to child agents",
         ]
         for phrase in required:
