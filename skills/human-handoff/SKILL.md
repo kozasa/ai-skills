@@ -106,7 +106,7 @@ Text (verbatim):
 Constraints: render every quoted Japanese label clearly; no unexplained icons; no English substitution.
 ```
 
-After generation, inspect the image itself. Reject and regenerate once when any required label is missing, unreadable, garbled, too small, or replaced by English, or when icons and arrows do not make the causal direction clear. If the second result still fails, omit ImageGen and use an HTML/CSS explanatory figure; never accept an attractive but semantically unclear image.
+After generation, inspect the image itself. Reject and regenerate once when any required label is missing, unreadable, garbled, too small, or replaced by English, or when icons and arrows do not make the causal direction clear. For a bridge retry to the same output path, add `--replace`; replacement is atomic and occurs only after the new PNG passes signature verification. If the second result still fails, omit ImageGen and use an HTML/CSS explanatory figure; never accept an attractive but semantically unclear image.
 
 - In Codex, use `$imagegen` and its built-in ImageGen tool.
 - In Claude Code or another runtime without Codex ImageGen, first reduce the content to a non-sensitive visual specification. Do not include customer data, personal information, credentials, private source text, or internal identifiers. Save that specification to a local prompt file, then run `scripts/generate-with-codex-imagegen.sh --prompt-file <path> --output <handoff-source>/images/<name>.png`. This invokes `codex exec` ephemerally with the workspace-write sandbox and returns a verified PNG.

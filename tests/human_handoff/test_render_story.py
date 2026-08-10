@@ -72,7 +72,7 @@ class StoryRendererTest(unittest.TestCase):
         def add_image(source):
             image = source / "images/handoff-overview.png"
             image.parent.mkdir()
-            image.write_bytes(b"fake-png")
+            image.write_bytes(bytes.fromhex("89504e470d0a1a0a0000000d49484452000000100000000908060000003b2aac320000000f49444154789c63601805a3800a000002490001d95f7f9d0000000049454e44ae426082"))
 
         result, output = self.run_payload(payload, mutate_asset=add_image)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -82,6 +82,45 @@ class StoryRendererTest(unittest.TestCase):
         self.assertLess(page.index("変更の要点と確認事項"), page.index("判断概要"))
         self.assertIn('src="images/handoff-overview.png"', page)
         self.assertIn("重要なhandoff向けにimagegenで生成した補助図解。", page)
+
+    def test_imagegen_hero_rejects_a_corrupt_png(self):
+        payload = self.payload()
+        payload["hero_visual"] = {"path": "images/handoff-overview.png", "alt": "概要", "caption": "説明"}
+
+        def corrupt_image(source):
+            image = source / "images/handoff-overview.png"
+            image.parent.mkdir(parents=True, exist_ok=True)
+            image.write_bytes(b"fake-png")
+
+        result, _ = self.run_payload(payload, mutate_asset=corrupt_image)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("valid PNG image", result.stderr)
+
+    def test_imagegen_hero_rejects_a_non_widescreen_png(self):
+        payload = self.payload()
+        payload["hero_visual"] = {"path": "images/handoff-overview.png", "alt": "概要", "caption": "説明"}
+
+        def square_image(source):
+            image = source / "images/handoff-overview.png"
+            image.parent.mkdir(parents=True, exist_ok=True)
+            image.write_bytes(bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000b49444154789c6360000200000500017a5eab3f0000000049454e44ae426082"))
+
+        result, _ = self.run_payload(payload, mutate_asset=square_image)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("16:9 PNG image", result.stderr)
+
+    def test_imagegen_hero_rejects_indexed_png_without_palette(self):
+        payload = self.payload()
+        payload["hero_visual"] = {"path": "images/handoff-overview.png", "alt": "概要", "caption": "説明"}
+
+        def missing_palette(source):
+            image = source / "images/handoff-overview.png"
+            image.parent.mkdir(parents=True, exist_ok=True)
+            image.write_bytes(bytes.fromhex("89504e470d0a1a0a0000000d49484452000000100000000908030000000cf45c000000000c49444154789c636018a4000000990001443b224b0000000049454e44ae426082"))
+
+        result, _ = self.run_payload(payload, mutate_asset=missing_palette)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("valid PNG image", result.stderr)
 
     def test_recommendation_status_labels(self):
         expected = {

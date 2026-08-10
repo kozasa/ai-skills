@@ -12,8 +12,8 @@ description: Use when creating a local HTML decision report, completion report, 
 
 処理開始前に必ずFAST、STORY、FULLのいずれかを決める。
 
-- **FAST**: `--fast <input.json>`、`type` が `decision` / `completion` の正規化JSON、または `human-handoff` からの呼び出し。
-- **STORY**: `scripts/render_story.py --input <input.json> --output <index.html>`、PR後の実装経緯、または `human-handoff` のImplementation Story。
+- **FAST**: `--fast <input.json>`、または`type`が`decision` / `completion`の正規化JSON。`human-handoff`からは、明示的にFASTを指定した場合か、一時的でSTORYが過剰な例外時だけ選ぶ。
+- **STORY**: `scripts/render_story.py --input <input.json> --output <index.html>`、PR後の実装経緯、または`human-handoff`の既定であるImplementation Story。
 - **FULL**: 上記以外のトピック文字列、URL、ローカルファイルパス、または本格的な調査・AI画像付き解説の依頼。
 
 曖昧な場合、既に十分なcontextがあり速度が目的ならFASTを選ぶ。追加調査や生成画像が成果物の価値に必要ならFULLを選ぶ。
