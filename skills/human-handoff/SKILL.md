@@ -78,16 +78,14 @@ Begin every Implementation Story with a short visual overview. Build `at_a_glanc
 
 Use Implementation Story with this overview when any of these is true: there are at least three material changes, multiple components or roles are affected, causality is difficult to follow in prose, a human decision is required, or review/PR history is substantial. Continue to use prose-only or FAST for the exceptions in the workflow.
 
-Keep Story First: ImageGen hero, HTML overview, ビフォーアフター (`impact`), judgment summary, and background/request stay before decisions, implementation, and visual evidence. ImageGen provides the first intuitive impression; the HTML overview is the accurate map; ビフォーアフター shows the change at a glance; evidence confirms it.
+Keep Story First: ImageGen hero, HTML overview, visual evidence, and flow stay before the judgment summary, decisions, and implementation. ImageGen provides the first intuitive impression; the HTML overview is the accurate map; evidence and flow show what was actually built before the reader reaches the judgment.
 
 Fill the remaining contract fields with these emphases:
 
-- `request`: write it as 人間からの依頼 — the requester's own words or a faithful restatement from their point of view, not the agent's task description.
-- `impact`: this renders as ビフォーアフター near the top. Make each before/after pair a contrast the human can verify against the evidence below.
+- `pr_url`: when a PR already exists, always set its https URL so the page shows a PRを開く button at the top right; the human opens the PR from there. Omit it when there is no PR yet.
 - `recommendation.human_checks`: this renders as the emphasized 人間が見る点 column. List concrete checks, one action each.
 - `decisions`: list only judgments the agent made at its own discretion where an alternative existed, so the human can overturn them. State what was decided and why.
 - `implementation`: grade each item's `importance` (`high`/`medium`/`low`) by its effect on the human decision; the renderer sorts by it, so do not inflate grades.
-- `story`: optional. Include it only when the step-by-step implementation process itself helps the human; it renders as a collapsed 実装プロセス appendix near the end. Omit it otherwise.
 
 ### ImageGen hero image
 

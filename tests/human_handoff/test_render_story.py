@@ -47,26 +47,26 @@ class StoryRendererTest(unittest.TestCase):
 
     def test_story_first_order_and_asset_staging(self):
         page, output = self.render_valid_story()
-        labels = ["変更の要点と確認事項", "ビフォーアフター", "判断概要", "人間が見る点", "未確認事項", "背景と依頼", "人間からの依頼", "重要な判断", "実装されたもの", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "実装プロセス", "参照"]
+        labels = ["変更の要点と確認事項", "視覚的な証拠", "処理フロー", "判断概要", "人間が見る点", "未確認事項", "重要な判断", "実装されたもの", "検証結果", "次のアクション", "参照"]
         positions = [page.index(label) for label in labels]
         self.assertEqual(positions, sorted(positions))
+        self.assertIn('<a class="pr-link" href="https://github.com/example/shop-admin/pull/123">PRを開く', page)
+        self.assertLess(page.index('class="pr-link"'), page.index("変更の要点と確認事項"))
         self.assertNotIn("やったこと → なぜ必要か → どう対応したか → 確認してほしいこと", page)
         self.assertNotIn("実装までのストーリー", page)
         self.assertNotIn("変更の価値", page)
+        self.assertNotIn("背景と依頼", page)
+        self.assertNotIn("ビフォーアフター", page)
+        self.assertNotIn("実装プロセス", page)
         self.assertIn('class="overview-primary"', page)
         self.assertIn('class="overview-details"', page)
         self.assertIn('class="human-checks"', page)
-        self.assertIn('ビフォーアフター</h2><div class="ba-grid">', page)
         self.assertIn('実装されたもの</h2><div class="grid-one">', page)
         self.assertIn('差し戻してください。</p><div class="grid-one">', page)
-        self.assertIn('背景と依頼</h2><div class="grid-one">', page)
         self.assertIn('次のアクション</h2><div class="grid-one">', page)
         self.assertIn('.overview-details{display:grid;grid-template-columns:1fr;', page)
-        self.assertIn('<details class="process">', page)
         self.assertIn("beforeprint", page)
         self.assertIn("afterprint", page)
-        self.assertIn('<div class="ba-cell before"><span>Before</span>', page)
-        self.assertIn('<div class="ba-cell after"><span>After</span>', page)
         self.assertNotIn("Implementation Story</span>", page)
         for value in self.payload()["at_a_glance"].values():
             self.assertIn(value, page)
@@ -116,17 +116,14 @@ class StoryRendererTest(unittest.TestCase):
         self.assertNotIn('<div class="diagram-viewer">', page)
         self.assertIn('class="flow"', page)
 
-    def test_story_is_optional_and_renders_as_appendix_when_present(self):
-        payload = self.payload()
-        payload.pop("story")
-        result, output = self.run_payload(payload)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        page = (output / "index.html").read_text(encoding="utf-8")
-        self.assertNotIn("実装プロセス", page)
-        self.assertNotIn('{{', page)
-        page_with_story, _ = self.render_valid_story()
-        self.assertLess(page_with_story.index("検証結果"), page_with_story.index("実装プロセス"))
-        self.assertLess(page_with_story.index("実装プロセス"), page_with_story.index("参照"))
+    def test_removed_sections_are_rejected_as_unknown_keys(self):
+        for key, value in (("background", "旧背景"), ("request", "旧依頼"), ("impact", [{"title": "旧", "before": "b", "after": "a"}]), ("story", [{"title": "旧", "body": "b", "evidence": "e"}])):
+            with self.subTest(key=key):
+                payload = self.payload()
+                payload[key] = value
+                result, _ = self.run_payload(payload)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("unknown keys", result.stderr)
 
     def test_optional_imagegen_hero_is_staged_below_overview(self):
         payload = self.payload()
@@ -188,6 +185,22 @@ class StoryRendererTest(unittest.TestCase):
         result, _ = self.run_payload(payload, mutate_asset=missing_palette)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("valid PNG image", result.stderr)
+
+    def test_pr_url_is_optional_and_must_be_https(self):
+        payload = self.payload()
+        payload.pop("pr_url")
+        result, output = self.run_payload(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (output / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn('class="pr-link"', page)
+        self.assertNotIn("{{", page)
+        for invalid in ("http://github.com/example/shop-admin/pull/123", "github.com/example/pull/1", "previews/operation-demo.html"):
+            with self.subTest(invalid=invalid):
+                payload = self.payload()
+                payload["pr_url"] = invalid
+                result, _ = self.run_payload(payload)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("pr_url must be an https URL", result.stderr)
 
     def test_recommendation_status_labels(self):
         expected = {
@@ -506,11 +519,11 @@ class StoryRendererTest(unittest.TestCase):
     def test_skill_routes_and_boundaries_are_documented(self):
         handoff = (ROOT / "skills/human-handoff/SKILL.md").read_text(encoding="utf-8")
         quick = (ROOT / "skills/quick-html/SKILL.md").read_text(encoding="utf-8")
-        for text in ["Story First", "人間のログイン", "再構成HTML", "最終判断は人間", "人間からの依頼"]:
+        for text in ["Story First", "人間のログイン", "再構成HTML", "最終判断は人間"]:
             self.assertIn(text, handoff)
         self.assertIn("matching normalized contract", handoff)
         self.assertIn("FAST or STORY mode", handoff)
-        for text in ["merge-recommended", "conditional", "do-not-merge", "コードから再構成した操作デモ", "ローカルSVG", "外部通信", "ビフォーアフター", "実装プロセス", "Mermaid"]:
+        for text in ["merge-recommended", "conditional", "do-not-merge", "コードから再構成した操作デモ", "ローカルSVG", "外部通信", "PRを開く", "Mermaid"]:
             self.assertIn(text, quick)
 
 
