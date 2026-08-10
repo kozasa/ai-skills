@@ -47,13 +47,28 @@ class StoryRendererTest(unittest.TestCase):
 
     def test_story_first_order_and_asset_staging(self):
         page, output = self.render_valid_story()
-        labels = ["判断概要", "背景と依頼", "実装までのストーリー", "重要な判断", "実装されたもの", "変更の価値", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "参照"]
+        labels = ["今回の結論", "なぜ実装したか", "何をしたか", "どんな実装をしたか", "判断概要", "背景と依頼", "実装までのストーリー", "重要な判断", "実装されたもの", "変更の価値", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "参照"]
         positions = [page.index(label) for label in labels]
         self.assertEqual(positions, sorted(positions))
         self.assertTrue((output / "previews/operation-demo.html").is_file())
         self.assertTrue((output / "diagrams/bulk-update.svg").is_file())
         self.assertIn('sandbox="allow-scripts"', page)
         self.assertIn('src="diagrams/bulk-update.svg"', page)
+
+    def test_at_a_glance_renders_as_a_causal_flow(self):
+        page, _ = self.render_valid_story()
+        self.assertIn('class="conclusion-flow"', page)
+        self.assertEqual(page.count('class="conclusion-arrow"'), 2)
+        self.assertIn('class="conclusion-node conclusion-node-main"', page)
+
+    def test_at_a_glance_requires_what_why_and_how(self):
+        for key in ("what", "why", "how"):
+            with self.subTest(key=key):
+                payload = self.payload()
+                del payload["at_a_glance"][key]
+                result, _ = self.run_payload(payload)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(f"at_a_glance.{key} is required", result.stderr)
 
     def test_recommendation_status_labels(self):
         expected = {
@@ -353,8 +368,10 @@ class StoryRendererTest(unittest.TestCase):
         quick = (ROOT / "skills/quick-html/SKILL.md").read_text(encoding="utf-8")
         for text in ["Story First", "人間のログイン", "再構成HTML", "最終判断は人間"]:
             self.assertIn(text, handoff)
-        self.assertIn("matching normalized contract", handoff)
-        self.assertIn("FAST or STORY mode", handoff)
+        self.assertIn("Default to Implementation Story", handoff)
+        self.assertIn("one-line status", handoff)
+        self.assertNotIn("FAST input contract", handoff)
+        self.assertNotIn("FAST HTML", handoff)
         for text in ["merge-recommended", "conditional", "do-not-merge", "コードから再構成した操作デモ", "ローカルSVG", "外部通信"]:
             self.assertIn(text, quick)
 

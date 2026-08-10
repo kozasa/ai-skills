@@ -18,7 +18,8 @@ from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
 
-ROOT_KEYS = {"slug", "title", "summary", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
+ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
+AT_A_GLANCE_KEYS = {"what", "why", "how"}
 OBJECT_SPECS = {
     "story": ({"title", "body", "evidence"}, ("title", "body", "evidence")),
     "decisions": ({"title", "body", "reason"}, ("title", "body", "reason")),
@@ -99,6 +100,13 @@ def validate_payload(value: object) -> dict[str, Any]:
     if not SLUG.fullmatch(payload["slug"]):
         raise ContractError("slug must be lowercase kebab-case")
 
+    at_a_glance = _dict(payload.get("at_a_glance"), "at_a_glance")
+    _keys(at_a_glance, AT_A_GLANCE_KEYS, "at_a_glance")
+    for field in ("what", "why", "how"):
+        if field not in at_a_glance:
+            raise ContractError(f"at_a_glance.{field} is required")
+        _string(at_a_glance[field], f"at_a_glance.{field}")
+
     recommendation = _dict(payload.get("recommendation"), "recommendation")
     _keys(recommendation, RECOMMENDATION_KEYS, "recommendation")
     for field in ("status", "reason"):
@@ -175,6 +183,20 @@ def _recommendation(item):
     return f'<section class="judgment"><span class="status {item["status"]}">{labels[item["status"]]}</span><h2>判断概要</h2><p>{_escape(item["reason"])}</p><div class="split"><div><h3>未確認事項</h3><ul>{unverified}</ul></div><div><h3>人間が見る点</h3><ul>{checks}</ul></div></div></section>'
 
 
+def _at_a_glance(item):
+    nodes = (
+        ("なぜ実装したか", item["why"], ""),
+        ("何をしたか", item["what"], " conclusion-node-main"),
+        ("どんな実装をしたか", item["how"], ""),
+    )
+    content = []
+    for index, (label, value, modifier) in enumerate(nodes):
+        if index:
+            content.append('<span class="conclusion-arrow" aria-hidden="true">→</span>')
+        content.append(f'<div class="conclusion-node{modifier}"><h3>{label}</h3><p>{_escape(value)}</p></div>')
+    return f'<section class="conclusion"><span class="section-num">At a glance</span><h2>今回の結論</h2><div class="conclusion-flow">{"".join(content)}</div></section>'
+
+
 def _story(items):
     return "".join(f'<li><span class="step">{index}</span><article class="card story-card"><h3>{_escape(item["title"])}</h3><p>{_escape(item["body"])}</p><p class="meta">根拠: {_escape(item["evidence"])}</p></article></li>' for index, item in enumerate(items, 1))
 
@@ -224,7 +246,7 @@ def _references(items):
 
 def render(payload, template):
     replacements = {
-        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
+        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
         "{{BACKGROUND}}": _escape(payload["background"]), "{{REQUEST}}": _escape(payload["request"]), "{{STORY}}": _story(payload["story"]),
         "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _cards(payload["implementation"]), "{{IMPACT}}": _impact(payload["impact"]),
         "{{VISUALS}}": _visuals(payload["visuals"]), "{{FLOW}}": _flow(payload["flow"]), "{{VERIFICATION}}": _verification(payload["verification"]),
