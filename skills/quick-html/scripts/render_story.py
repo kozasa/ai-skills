@@ -20,12 +20,10 @@ from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
 
-ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "hero_visual", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
+ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "hero_visual", "pr_url", "recommendation", "decisions", "implementation", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
 OBJECT_SPECS = {
-    "story": ({"title", "body", "evidence"}, ("title", "body", "evidence")),
     "decisions": ({"title", "body", "reason"}, ("title", "body", "reason")),
     "implementation": ({"title", "body", "importance"}, ("title", "body", "importance")),
-    "impact": ({"title", "before", "after"}, ("title", "before", "after")),
     "next_actions": ({"title", "body", "owner", "timing"}, ("title", "body", "owner", "timing")),
     "references": ({"label", "url", "description"}, ("label", "description")),
 }
@@ -99,10 +97,16 @@ def _url(value: Any, path: str) -> str | None:
 def validate_payload(value: object) -> dict[str, Any]:
     payload = _dict(value, "payload")
     _keys(payload, ROOT_KEYS, "payload")
-    for field in ("slug", "title", "summary", "background", "request"):
+    for field in ("slug", "title", "summary"):
         _string(payload.get(field), field)
     if not SLUG.fullmatch(payload["slug"]):
         raise ContractError("slug must be lowercase kebab-case")
+
+    pr_url = payload.get("pr_url")
+    if pr_url is not None:
+        parsed = urlparse(_string(pr_url, "pr_url"))
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ContractError("pr_url must be an https URL")
 
     at_a_glance = _dict(payload.get("at_a_glance"), "at_a_glance")
     _keys(at_a_glance, AT_A_GLANCE_KEYS, "at_a_glance")
@@ -129,9 +133,7 @@ def validate_payload(value: object) -> dict[str, Any]:
     _strings(recommendation.get("human_checks"), "recommendation.human_checks", nonempty=True)
 
     for field, (allowed, required) in OBJECT_SPECS.items():
-        if field == "story" and payload.get("story") is None:
-            continue
-        for index, item in enumerate(_list(payload.get(field), field)):
+        for index, item in enumerate(_list(payload.get(field), field, nonempty=field != "decisions")):
             item = _dict(item, f"{field}[{index}]")
             _keys(item, allowed, f"{field}[{index}]")
             for name in required:
@@ -206,6 +208,12 @@ def _at_a_glance(item):
     return '<section class="overview"><span class="section-num">At a glance</span><h2>変更の要点と確認事項</h2>' + primary + '<div class="overview-details">' + details + "</div></section>"
 
 
+def _pr_link(url):
+    if url is None:
+        return ""
+    return f'<a class="pr-link" href="{_escape(url)}">PRを開く<span aria-hidden="true"> ↗</span></a>'
+
+
 def _hero_visual(item):
     if item is None:
         return ""
@@ -216,18 +224,6 @@ def _implementation(items):
     labels = {"high": "重要度: 大", "medium": "重要度: 中", "low": "重要度: 小"}
     ordered = sorted(items, key=lambda item: IMPORTANCE_LEVELS.index(item["importance"]))
     return "".join(f'<article class="card"><div class="card-head"><h3>{_escape(item["title"])}</h3><span class="importance {item["importance"]}">{labels[item["importance"]]}</span></div><p>{_escape(item["body"])}</p></article>' for item in ordered)
-
-
-def _story_section(items):
-    if not items:
-        return ""
-    steps = "".join(f'<li><span class="step">{index}</span><article class="card story-card"><h3>{_escape(item["title"])}</h3><p>{_escape(item["body"])}</p><p class="meta">根拠: {_escape(item["evidence"])}</p></article></li>' for index, item in enumerate(items, 1))
-    return f'<section><span class="section-num">Appendix · Process</span><h2>実装プロセス</h2><details class="process"><summary>実装プロセスの流れを開く</summary><ol class="timeline">{steps}</ol></details></section>'
-
-
-def _impact(items):
-    rows = "".join(f'<h3 class="ba-title">{_escape(item["title"])}</h3><div class="ba-cell before"><span>Before</span><p>{_escape(item["before"])}</p></div><div class="ba-cell after"><span>After</span><p>{_escape(item["after"])}</p></div>' for item in items)
-    return f'<div class="ba-grid">{rows}</div>'
 
 
 def _visuals(items):
@@ -278,9 +274,8 @@ def _references(items):
 
 def render(payload, template):
     replacements = {
-        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{HERO_VISUAL}}": _hero_visual(payload.get("hero_visual")), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
-        "{{BACKGROUND}}": _escape(payload["background"]), "{{REQUEST}}": _escape(payload["request"]), "{{STORY_SECTION}}": _story_section(payload.get("story")),
-        "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _implementation(payload["implementation"]), "{{IMPACT}}": _impact(payload["impact"]),
+        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{PR_LINK}}": _pr_link(payload.get("pr_url")), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{HERO_VISUAL}}": _hero_visual(payload.get("hero_visual")), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
+        "{{DECISIONS}}": _cards(payload["decisions"], "reason") or '<article class="card"><p>この変更に、エージェントが裁量で決めた判断はありません。</p></article>', "{{IMPLEMENTATION}}": _implementation(payload["implementation"]),
         "{{VISUALS}}": _visuals(payload["visuals"]), "{{FLOW}}": _flow(payload["flow"]), "{{VERIFICATION}}": _verification(payload["verification"]),
         "{{CONSTRAINTS}}": "".join(f"<li>{_escape(item)}</li>" for item in payload["constraints"]), "{{NEXT_ACTIONS}}": _actions(payload["next_actions"]), "{{REFERENCES}}": _references(payload["references"]),
     }
