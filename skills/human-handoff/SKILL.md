@@ -84,7 +84,7 @@ Fill the remaining contract fields with these emphases:
 
 - `pr_url`: when a PR already exists, always set its https URL so the page shows a PRを開く button at the top right; the human opens the PR from there. Omit it when there is no PR yet.
 - `recommendation.human_checks`: this renders as the emphasized 人間が見る点 column. List concrete checks, one action each.
-- `decisions`: list only judgments the agent made at its own discretion where an alternative existed, so the human can overturn them. State what was decided and why.
+- `decisions`: list only judgments the agent made at its own discretion where an alternative existed, so the human can overturn them. State what was decided and why. Leave the array empty when no such judgment exists; never invent one.
 - `implementation`: grade each item's `importance` (`high`/`medium`/`low`) by its effect on the human decision; the renderer sorts by it, so do not inflate grades.
 
 ### ImageGen hero image

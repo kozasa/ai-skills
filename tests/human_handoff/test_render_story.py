@@ -202,6 +202,15 @@ class StoryRendererTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("pr_url must be an https URL", result.stderr)
 
+    def test_decisions_may_be_empty_and_render_an_explicit_note(self):
+        payload = self.payload()
+        payload["decisions"] = []
+        result, output = self.run_payload(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (output / "index.html").read_text(encoding="utf-8")
+        self.assertIn("エージェントが裁量で決めた判断はありません", page)
+        self.assertNotIn("{{", page)
+
     def test_recommendation_status_labels(self):
         expected = {
             "merge-recommended": "マージ推奨",

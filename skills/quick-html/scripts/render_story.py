@@ -133,7 +133,7 @@ def validate_payload(value: object) -> dict[str, Any]:
     _strings(recommendation.get("human_checks"), "recommendation.human_checks", nonempty=True)
 
     for field, (allowed, required) in OBJECT_SPECS.items():
-        for index, item in enumerate(_list(payload.get(field), field)):
+        for index, item in enumerate(_list(payload.get(field), field, nonempty=field != "decisions")):
             item = _dict(item, f"{field}[{index}]")
             _keys(item, allowed, f"{field}[{index}]")
             for name in required:
@@ -275,7 +275,7 @@ def _references(items):
 def render(payload, template):
     replacements = {
         "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{PR_LINK}}": _pr_link(payload.get("pr_url")), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{HERO_VISUAL}}": _hero_visual(payload.get("hero_visual")), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
-        "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _implementation(payload["implementation"]),
+        "{{DECISIONS}}": _cards(payload["decisions"], "reason") or '<article class="card"><p>この変更に、エージェントが裁量で決めた判断はありません。</p></article>', "{{IMPLEMENTATION}}": _implementation(payload["implementation"]),
         "{{VISUALS}}": _visuals(payload["visuals"]), "{{FLOW}}": _flow(payload["flow"]), "{{VERIFICATION}}": _verification(payload["verification"]),
         "{{CONSTRAINTS}}": "".join(f"<li>{_escape(item)}</li>" for item in payload["constraints"]), "{{NEXT_ACTIONS}}": _actions(payload["next_actions"]), "{{REFERENCES}}": _references(payload["references"]),
     }

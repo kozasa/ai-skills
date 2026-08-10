@@ -48,6 +48,7 @@ The complete contract example is `tests/human_handoff/fixtures/implementation-st
 - `hero_visual`: optional `{path, alt, caption}` for the handoff's ImageGen illustration. Use a safe relative 16:9 PNG path; the renderer verifies the PNG signature and aspect ratio. Render it directly below the title and before `at_a_glance`.
 - `pr_url`: optional https URL of the pull request. It renders as a prominent PRを開く button at the top right of the header so the human can open the PR immediately; always set it when a PR exists.
 - `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`. `human_checks` renders as 人間が見る点 in the emphasized left column of 判断概要.
+- `decisions`: may be an empty array when the agent made no discretionary judgment; the page then states that explicitly. Never invent a decision to fill the section.
 - `implementation`: each item requires `importance` (`high`, `medium`, or `low`). The renderer sorts items high→low and shows a 重要度: 大/中/小 badge, so list what matters most and grade it honestly.
 - Page order: header with optional PRを開く button（右上）→ optional ImageGen hero → HTML overview（変更の要点と確認事項）→ 視覚的な証拠 → 処理フロー → 判断概要 → 重要な判断 → 実装されたもの（1カラム）→ verification/actions → references.
 - A reconstructed preview must display `コードから再構成した操作デモ`, use fictional data, include `aria-live`, and make no 外部通信. Embed it with `sandbox="allow-scripts"`.
