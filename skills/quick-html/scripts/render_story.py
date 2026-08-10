@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
 
-ROOT_KEYS = {"slug", "title", "summary", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
+ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "hero_visual", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
 OBJECT_SPECS = {
     "story": ({"title", "body", "evidence"}, ("title", "body", "evidence")),
     "decisions": ({"title", "body", "reason"}, ("title", "body", "reason")),
@@ -28,6 +28,8 @@ OBJECT_SPECS = {
     "references": ({"label", "url", "description"}, ("label", "description")),
 }
 RECOMMENDATION_KEYS = {"status", "reason", "unverified", "human_checks"}
+AT_A_GLANCE_KEYS = {"what", "why", "how", "human_decision"}
+HERO_VISUAL_KEYS = {"path", "alt", "caption"}
 VISUAL_KEYS = {"title", "type", "path", "description"}
 FLOW_KEYS = {"title", "diagram_path", "description", "steps"}
 FLOW_STEP_KEYS = {"condition", "result"}
@@ -98,6 +100,21 @@ def validate_payload(value: object) -> dict[str, Any]:
         _string(payload.get(field), field)
     if not SLUG.fullmatch(payload["slug"]):
         raise ContractError("slug must be lowercase kebab-case")
+
+    at_a_glance = _dict(payload.get("at_a_glance"), "at_a_glance")
+    _keys(at_a_glance, AT_A_GLANCE_KEYS, "at_a_glance")
+    for field in AT_A_GLANCE_KEYS:
+        _string(at_a_glance.get(field), f"at_a_glance.{field}")
+
+    hero_visual = payload.get("hero_visual")
+    if hero_visual is not None:
+        hero_visual = _dict(hero_visual, "hero_visual")
+        _keys(hero_visual, HERO_VISUAL_KEYS, "hero_visual")
+        for field in HERO_VISUAL_KEYS:
+            _string(hero_visual.get(field), f"hero_visual.{field}")
+        hero_path = _relative(hero_visual["path"], "hero_visual.path")
+        if PurePosixPath(hero_path).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp", ".avif"}:
+            raise ContractError("hero_visual.path must use a raster image extension")
 
     recommendation = _dict(payload.get("recommendation"), "recommendation")
     _keys(recommendation, RECOMMENDATION_KEYS, "recommendation")
@@ -175,6 +192,19 @@ def _recommendation(item):
     return f'<section class="judgment"><span class="status {item["status"]}">{labels[item["status"]]}</span><h2>判断概要</h2><p>{_escape(item["reason"])}</p><div class="split"><div><h3>未確認事項</h3><ul>{unverified}</ul></div><div><h3>人間が見る点</h3><ul>{checks}</ul></div></div></section>'
 
 
+def _at_a_glance(item):
+    labels = (("why", "なぜ必要か"), ("how", "どう対応したか"), ("human_decision", "確認してほしいこと"))
+    details = "".join(f'<article class="overview-card"><span>{label}</span><p>{_escape(item[key])}</p></article>' for key, label in labels)
+    primary = f'<article class="overview-primary"><span>やったこと</span><p>{_escape(item["what"])}</p></article>'
+    return '<section class="overview"><span class="section-num">At a glance</span><h2>変更の要点と確認事項</h2>' + primary + '<div class="overview-details">' + details + "</div></section>"
+
+
+def _hero_visual(item):
+    if item is None:
+        return ""
+    return f'<figure class="hero-visual"><div class="visual-head"><span class="tag">ImageGen</span><strong>重要ポイントの説明図</strong></div><img src="{_escape(item["path"])}" alt="{_escape(item["alt"])}"><figcaption>{_escape(item["caption"])}</figcaption></figure>'
+
+
 def _story(items):
     return "".join(f'<li><span class="step">{index}</span><article class="card story-card"><h3>{_escape(item["title"])}</h3><p>{_escape(item["body"])}</p><p class="meta">根拠: {_escape(item["evidence"])}</p></article></li>' for index, item in enumerate(items, 1))
 
@@ -224,7 +254,7 @@ def _references(items):
 
 def render(payload, template):
     replacements = {
-        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
+        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{HERO_VISUAL}}": _hero_visual(payload.get("hero_visual")), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
         "{{BACKGROUND}}": _escape(payload["background"]), "{{REQUEST}}": _escape(payload["request"]), "{{STORY}}": _story(payload["story"]),
         "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _cards(payload["implementation"]), "{{IMPACT}}": _impact(payload["impact"]),
         "{{VISUALS}}": _visuals(payload["visuals"]), "{{FLOW}}": _flow(payload["flow"]), "{{VERIFICATION}}": _verification(payload["verification"]),
@@ -437,6 +467,10 @@ def stage_assets(payload, input_path, output_path):
     output_root.mkdir(parents=True, exist_ok=True)
     prefix = PurePosixPath(".story-assets") if source_root == output_root else PurePosixPath()
     staging_root = output_root / prefix
+    if payload.get("hero_visual"):
+        original_path = payload["hero_visual"]["path"]
+        _stage(original_path, source_root, staging_root, "hero-visual")
+        payload["hero_visual"]["path"] = (prefix / original_path).as_posix()
     for item in payload["visuals"]:
         if item.get("path"):
             original_path = item["path"]

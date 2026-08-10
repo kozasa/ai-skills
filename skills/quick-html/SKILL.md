@@ -42,10 +42,12 @@ python3 <skill-dir>/scripts/render_fast.py \
 python3 <skill-dir>/scripts/render_story.py --input /absolute/story.json --output /absolute/implementation-story-<slug>/index.html
 ```
 
-The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
+The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `at_a_glance`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
 
+- `at_a_glance`: `{what, why, how, human_decision}`. Keep each value to one to three short lines: what was done, why it was needed, how it was handled, and exactly what the human should confirm or decide.
+- `hero_visual`: optional `{path, alt, caption}` for an important handoff's ImageGen illustration. Use a safe relative raster path. Render it directly below the title and before `at_a_glance`.
 - `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`.
-- Keep Story First: background/request → Story → decisions → implementation → evidence → flow → verification/actions.
+- Keep Story First: optional ImageGen hero → HTML overview → judgment → background/request → Story → decisions → implementation → evidence → flow → verification/actions.
 - A reconstructed preview must display `コードから再構成した操作デモ`, use fictional data, include `aria-live`, and make no 外部通信. Embed it with `sandbox="allow-scripts"`.
 - Convert Mermaid during generation and provide a ローカルSVG. Do not load Mermaid or a CDN at viewing time. Keep HTML flow steps as a fallback.
 - Never invent a screen, link, test result, or recommendation. Mark unavailable evidence honestly.

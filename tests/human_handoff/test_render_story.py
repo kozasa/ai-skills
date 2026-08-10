@@ -47,13 +47,41 @@ class StoryRendererTest(unittest.TestCase):
 
     def test_story_first_order_and_asset_staging(self):
         page, output = self.render_valid_story()
-        labels = ["判断概要", "背景と依頼", "実装までのストーリー", "重要な判断", "実装されたもの", "変更の価値", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "参照"]
+        labels = ["変更の要点と確認事項", "判断概要", "背景と依頼", "実装までのストーリー", "重要な判断", "実装されたもの", "変更の価値", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "参照"]
         positions = [page.index(label) for label in labels]
         self.assertEqual(positions, sorted(positions))
+        self.assertNotIn("やったこと → なぜ必要か → どう対応したか → 確認してほしいこと", page)
+        self.assertIn('class="overview-primary"', page)
+        self.assertIn('class="overview-details"', page)
+        self.assertNotIn("Implementation Story</span>", page)
+        for value in self.payload()["at_a_glance"].values():
+            self.assertIn(value, page)
         self.assertTrue((output / "previews/operation-demo.html").is_file())
         self.assertTrue((output / "diagrams/bulk-update.svg").is_file())
         self.assertIn('sandbox="allow-scripts"', page)
         self.assertIn('src="diagrams/bulk-update.svg"', page)
+
+    def test_optional_imagegen_hero_is_staged_below_overview(self):
+        payload = self.payload()
+        payload["hero_visual"] = {
+            "path": "images/handoff-overview.png",
+            "alt": "変更全体を説明する生成イラスト",
+            "caption": "重要なhandoff向けにimagegenで生成した補助図解。",
+        }
+
+        def add_image(source):
+            image = source / "images/handoff-overview.png"
+            image.parent.mkdir()
+            image.write_bytes(b"fake-png")
+
+        result, output = self.run_payload(payload, mutate_asset=add_image)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (output / "index.html").read_text(encoding="utf-8")
+        self.assertTrue((output / "images/handoff-overview.png").is_file())
+        self.assertLess(page.index("重要ポイントの説明図"), page.index("変更の要点と確認事項"))
+        self.assertLess(page.index("変更の要点と確認事項"), page.index("判断概要"))
+        self.assertIn('src="images/handoff-overview.png"', page)
+        self.assertIn("重要なhandoff向けにimagegenで生成した補助図解。", page)
 
     def test_recommendation_status_labels(self):
         expected = {

@@ -1,4 +1,4 @@
 interface:
   display_name: "Human Handoff"
   short_description: "Present decisions, results, and implementation stories clearly"
-  default_prompt: "Use $human-handoff to present this decision, completion report, or implementation story in the clearest low-friction format."
+  default_prompt: "Use $human-handoff to present this as an Implementation Story by default, falling back to prose or FAST only for the skill's stated exceptions."
