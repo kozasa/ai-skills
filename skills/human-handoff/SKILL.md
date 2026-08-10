@@ -74,50 +74,23 @@ For a normal repository, write the result under `output/explainer-<slug>/index.h
 
 ## Implementation Story
 
-Begin every Implementation Story with a short visual overview. Build `at_a_glance` as `{what, why, how, human_decision}` and keep each value to one to three lines. Show `やったこと → なぜ必要か → どう対応したか → 確認してほしいこと`. Write a concrete action in `human_decision`; do not use vague wording such as `確認してください` alone.
+STORY 契約のフィールド定義・必須項目・ページ順序は `$quick-html` の STORY mode 節が正本。ここには handoff 固有の判断だけを書く。
+
+Begin every Implementation Story with a short visual overview. Build `at_a_glance` as `{what, why, how, human_decision}` and show `やったこと → なぜ必要か → どう対応したか → 確認してほしいこと`. Write a concrete action in `human_decision`; do not use vague wording such as `確認してください` alone.
 
 Use Implementation Story with this overview when any of these is true: there are at least three material changes, multiple components or roles are affected, causality is difficult to follow in prose, a human decision is required, or review/PR history is substantial. Continue to use prose-only or FAST for the exceptions in the workflow.
 
 Keep Story First: ImageGen hero, HTML overview, visual evidence, and flow stay before the judgment summary, decisions, and implementation. ImageGen provides the first intuitive impression; the HTML overview is the accurate map; evidence and flow show what was actually built before the reader reaches the judgment.
 
-Fill the remaining contract fields with these emphases:
+Handoff 固有の強調点:
 
 - `pr_url`: when a PR already exists, always set its https URL so the page shows a PRを開く button at the top right; the human opens the PR from there. Omit it when there is no PR yet.
-- `recommendation.human_checks`: this renders as the emphasized 人間が見る点 column. List concrete checks, one action each.
+- `recommendation.human_checks`: list concrete checks, one action each.
 - `decisions`: list only judgments the agent made at its own discretion where an alternative existed, so the human can overturn them. State what was decided and why. Leave the array empty when no such judgment exists; never invent one.
-- `implementation`: grade each item's `importance` (`high`/`medium`/`low`) by its effect on the human decision; the renderer sorts by it, so do not inflate grades.
 
 ### ImageGen hero image
 
-Every Implementation Story needs an opening image (イメージ). Generate one ImageGen illustration per story by default; when image generation is unavailable or fails twice, fall back to an HTML/CSS explanatory figure instead.
-
-Use Codex ImageGen to create a 16:9 `infographic-diagram` that explains the central causal relationship or operating model. The image must be understandable without reading the surrounding article. Save the selected raster image inside the handoff output source tree, add it as `hero_visual: {path, alt, caption}`, and render it directly below the title and before `at_a_glance`.
-
-Write the image specification with exact, short Japanese text for all five elements below. Prefer five to ten Japanese characters per label and five to seven labels total; do not replace them with generic English.
-
-1. A conclusion-led title that says what the diagram proves.
-2. A label for every major step or object.
-3. A short condition on every decision branch.
-4. A concrete outcome at every endpoint.
-5. One takeaway sentence at the bottom.
-
-Use this prompt shape:
-
-```text
-Text (verbatim):
-- Title: "<結論が分かる日本語>"
-- Steps: "<工程1>" / "<工程2>" / "<工程3>"
-- Branches: "<条件A>" / "<条件B>"
-- Outcomes: "<結果A>" / "<結果B>"
-- Takeaway: "<一行結論>"
-Constraints: render every quoted Japanese label clearly; no unexplained icons; no English substitution.
-```
-
-After generation, inspect the image itself. Reject and regenerate once when any required label is missing, unreadable, garbled, too small, or replaced by English, or when icons and arrows do not make the causal direction clear. For a bridge retry to the same output path, add `--replace`; replacement is atomic and occurs only after the new PNG passes signature verification. If the second result still fails, omit ImageGen and use an HTML/CSS explanatory figure; never accept an attractive but semantically unclear image.
-
-- In Codex, use `$imagegen` and its built-in ImageGen tool.
-- In Claude Code or another runtime without Codex ImageGen, first reduce the content to a non-sensitive visual specification. Do not include customer data, personal information, credentials, private source text, or internal identifiers. Save that specification to a local prompt file, then run `scripts/generate-with-codex-imagegen.sh --prompt-file <path> --output <handoff-source>/images/<name>.png`. This invokes `codex exec` ephemerally with the workspace-write sandbox and returns a verified PNG.
-- If the bridge, authentication, or image generation fails, continue with the HTML overview. Do not switch to an API-key-based image generator or expose secrets.
+Every Implementation Story needs an opening image (イメージ). Generate one ImageGen illustration per story by default; before generating, read `references/imagegen-hero.md` for the image specification, prompt shape, inspection criteria, and runtime-specific invocation. When image generation is unavailable or fails twice, fall back to an HTML/CSS explanatory figure instead.
 
 Do not delay or fail a handoff because image generation is unavailable. Omit `hero_visual`, keep the HTML overview, and state the omission only when it matters to the human decision.
 
