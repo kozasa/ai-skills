@@ -78,11 +78,20 @@ Begin every Implementation Story with a short visual overview. Build `at_a_glanc
 
 Use Implementation Story with this overview when any of these is true: there are at least three material changes, multiple components or roles are affected, causality is difficult to follow in prose, a human decision is required, or review/PR history is substantial. Continue to use prose-only or FAST for the exceptions in the workflow.
 
-Keep Story First: optional ImageGen hero, HTML overview, judgment summary, background/request, Story, decisions, and implementation stay before visual evidence. ImageGen provides the first intuitive impression; the HTML overview is the accurate map; the Story explains causality; evidence confirms it.
+Keep Story First: ImageGen hero, HTML overview, ビフォーアフター (`impact`), judgment summary, and background/request stay before decisions, implementation, and visual evidence. ImageGen provides the first intuitive impression; the HTML overview is the accurate map; ビフォーアフター shows the change at a glance; evidence confirms it.
 
-### ImageGen for important handoffs
+Fill the remaining contract fields with these emphases:
 
-Use the HTML overview for every Implementation Story. Add one ImageGen illustration only when the user marks the handoff important or when at least two of these apply: customer/public impact, difficult-to-reverse or high-risk change, multiple teams or roles, executive-level judgment, or long-lived reference value.
+- `request`: write it as 人間からの依頼 — the requester's own words or a faithful restatement from their point of view, not the agent's task description.
+- `impact`: this renders as ビフォーアフター near the top. Make each before/after pair a contrast the human can verify against the evidence below.
+- `recommendation.human_checks`: this renders as the emphasized 人間が見る点 column. List concrete checks, one action each.
+- `decisions`: list only judgments the agent made at its own discretion where an alternative existed, so the human can overturn them. State what was decided and why.
+- `implementation`: grade each item's `importance` (`high`/`medium`/`low`) by its effect on the human decision; the renderer sorts by it, so do not inflate grades.
+- `story`: optional. Include it only when the step-by-step implementation process itself helps the human; it renders as a collapsed 実装プロセス appendix near the end. Omit it otherwise.
+
+### ImageGen hero image
+
+Every Implementation Story needs an opening image (イメージ). Generate one ImageGen illustration per story by default; when image generation is unavailable or fails twice, fall back to an HTML/CSS explanatory figure instead.
 
 Use Codex ImageGen to create a 16:9 `infographic-diagram` that explains the central causal relationship or operating model. The image must be understandable without reading the surrounding article. Save the selected raster image inside the handoff output source tree, add it as `hero_visual: {path, alt, caption}`, and render it directly below the title and before `at_a_glance`.
 

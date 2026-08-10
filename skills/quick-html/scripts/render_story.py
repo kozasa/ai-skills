@@ -10,21 +10,21 @@ import posixpath
 from pathlib import Path, PurePosixPath
 import re
 import shutil
-import subprocess
 import struct
+import subprocess
 import sys
 import tempfile
+import zlib
 from typing import Any
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
-import zlib
 
 
 ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "hero_visual", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
 OBJECT_SPECS = {
     "story": ({"title", "body", "evidence"}, ("title", "body", "evidence")),
     "decisions": ({"title", "body", "reason"}, ("title", "body", "reason")),
-    "implementation": ({"title", "body"}, ("title", "body")),
+    "implementation": ({"title", "body", "importance"}, ("title", "body", "importance")),
     "impact": ({"title", "before", "after"}, ("title", "before", "after")),
     "next_actions": ({"title", "body", "owner", "timing"}, ("title", "body", "owner", "timing")),
     "references": ({"label", "url", "description"}, ("label", "description")),
@@ -39,6 +39,7 @@ VERIFICATION_KEYS = {"title", "status", "details", "blocking"}
 RECOMMENDATION_STATUSES = {"merge-recommended", "conditional", "do-not-merge"}
 VISUAL_TYPES = {"actual", "reconstructed", "screenshot", "static-explanation"}
 VERIFICATION_STATUSES = {"passed", "failed", "warning", "unverified"}
+IMPORTANCE_LEVELS = ("high", "medium", "low")
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 
 
@@ -128,6 +129,8 @@ def validate_payload(value: object) -> dict[str, Any]:
     _strings(recommendation.get("human_checks"), "recommendation.human_checks", nonempty=True)
 
     for field, (allowed, required) in OBJECT_SPECS.items():
+        if field == "story" and payload.get("story") is None:
+            continue
         for index, item in enumerate(_list(payload.get(field), field)):
             item = _dict(item, f"{field}[{index}]")
             _keys(item, allowed, f"{field}[{index}]")
@@ -135,6 +138,8 @@ def validate_payload(value: object) -> dict[str, Any]:
                 _string(item.get(name), f"{field}[{index}].{name}")
             if field == "references":
                 item["url"] = _url(item.get("url"), f"references[{index}].url")
+            if field == "implementation" and item["importance"] not in IMPORTANCE_LEVELS:
+                raise ContractError(f"implementation[{index}].importance must be high, medium, or low")
 
     for index, item in enumerate(_list(payload.get("visuals"), "visuals")):
         item = _dict(item, f"visuals[{index}]")
@@ -191,7 +196,7 @@ def _recommendation(item):
     labels = {"merge-recommended": "マージ推奨", "conditional": "条件付きでマージ可能", "do-not-merge": "マージ非推奨"}
     unverified = "".join(f"<li>{_escape(value)}</li>" for value in item["unverified"]) or "<li>なし</li>"
     checks = "".join(f"<li>{_escape(value)}</li>" for value in item["human_checks"])
-    return f'<section class="judgment"><span class="status {item["status"]}">{labels[item["status"]]}</span><h2>判断概要</h2><p>{_escape(item["reason"])}</p><div class="split"><div><h3>未確認事項</h3><ul>{unverified}</ul></div><div><h3>人間が見る点</h3><ul>{checks}</ul></div></div></section>'
+    return f'<section class="judgment"><span class="status {item["status"]}">{labels[item["status"]]}</span><h2>判断概要</h2><p>{_escape(item["reason"])}</p><div class="split"><div class="human-checks"><h3>人間が見る点</h3><ul>{checks}</ul></div><div><h3>未確認事項</h3><ul>{unverified}</ul></div></div></section>'
 
 
 def _at_a_glance(item):
@@ -207,12 +212,22 @@ def _hero_visual(item):
     return f'<figure class="hero-visual"><div class="visual-head"><span class="tag">ImageGen</span><strong>重要ポイントの説明図</strong></div><img src="{_escape(item["path"])}" alt="{_escape(item["alt"])}"><figcaption>{_escape(item["caption"])}</figcaption></figure>'
 
 
-def _story(items):
-    return "".join(f'<li><span class="step">{index}</span><article class="card story-card"><h3>{_escape(item["title"])}</h3><p>{_escape(item["body"])}</p><p class="meta">根拠: {_escape(item["evidence"])}</p></article></li>' for index, item in enumerate(items, 1))
+def _implementation(items):
+    labels = {"high": "重要度: 大", "medium": "重要度: 中", "low": "重要度: 小"}
+    ordered = sorted(items, key=lambda item: IMPORTANCE_LEVELS.index(item["importance"]))
+    return "".join(f'<article class="card"><div class="card-head"><h3>{_escape(item["title"])}</h3><span class="importance {item["importance"]}">{labels[item["importance"]]}</span></div><p>{_escape(item["body"])}</p></article>' for item in ordered)
+
+
+def _story_section(items):
+    if not items:
+        return ""
+    steps = "".join(f'<li><span class="step">{index}</span><article class="card story-card"><h3>{_escape(item["title"])}</h3><p>{_escape(item["body"])}</p><p class="meta">根拠: {_escape(item["evidence"])}</p></article></li>' for index, item in enumerate(items, 1))
+    return f'<section><span class="section-num">Appendix · Process</span><h2>実装プロセス</h2><details class="process"><summary>実装プロセスの流れを開く</summary><ol class="timeline">{steps}</ol></details></section>'
 
 
 def _impact(items):
-    return "".join(f'<article class="impact"><h3>{_escape(item["title"])}</h3><div><span>Before</span><p>{_escape(item["before"])}</p></div><b>→</b><div><span>After</span><p>{_escape(item["after"])}</p></div></article>' for item in items)
+    rows = "".join(f'<h3 class="ba-title">{_escape(item["title"])}</h3><div class="ba-cell before"><span>Before</span><p>{_escape(item["before"])}</p></div><div class="ba-cell after"><span>After</span><p>{_escape(item["after"])}</p></div>' for item in items)
+    return f'<div class="ba-grid">{rows}</div>'
 
 
 def _visuals(items):
@@ -231,9 +246,16 @@ def _visuals(items):
 
 
 def _flow(flow):
-    diagram = f'<img class="diagram" src="{_escape(flow["diagram_path"])}" alt="{_escape(flow["title"])}">' if flow.get("diagram_path") else ""
+    diagram = ""
+    if flow.get("diagram_path"):
+        controls = '<div class="diagram-controls"><button type="button" data-zoom="out" aria-label="縮小">−</button><button type="button" data-zoom="reset" class="zoom-level" aria-label="等倍に戻す">100%</button><button type="button" data-zoom="in" aria-label="拡大">＋</button></div>'
+        image = f'<img class="diagram" src="{_escape(flow["diagram_path"])}" alt="{_escape(flow["title"])}">'
+        diagram = f'<div class="diagram-viewer">{controls}<div class="diagram-pane">{image}</div></div>'
     steps = "".join(f'<div class="flow-row"><span>{_escape(item["condition"])}</span><b aria-hidden="true">→</b><strong>{_escape(item["result"])}</strong></div>' for item in flow["steps"])
-    return f'<h3>{_escape(flow["title"])}</h3><p>{_escape(flow["description"])}</p>{diagram}<div class="flow">{steps}</div>'
+    steps = f'<div class="flow">{steps}</div>'
+    if diagram:
+        steps = f'<details class="flow-steps"><summary>テキスト版フロー</summary>{steps}</details>'
+    return f'<h3>{_escape(flow["title"])}</h3><p>{_escape(flow["description"])}</p>{diagram}{steps}'
 
 
 def _verification(items):
@@ -257,8 +279,8 @@ def _references(items):
 def render(payload, template):
     replacements = {
         "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{HERO_VISUAL}}": _hero_visual(payload.get("hero_visual")), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
-        "{{BACKGROUND}}": _escape(payload["background"]), "{{REQUEST}}": _escape(payload["request"]), "{{STORY}}": _story(payload["story"]),
-        "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _cards(payload["implementation"]), "{{IMPACT}}": _impact(payload["impact"]),
+        "{{BACKGROUND}}": _escape(payload["background"]), "{{REQUEST}}": _escape(payload["request"]), "{{STORY_SECTION}}": _story_section(payload.get("story")),
+        "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _implementation(payload["implementation"]), "{{IMPACT}}": _impact(payload["impact"]),
         "{{VISUALS}}": _visuals(payload["visuals"]), "{{FLOW}}": _flow(payload["flow"]), "{{VERIFICATION}}": _verification(payload["verification"]),
         "{{CONSTRAINTS}}": "".join(f"<li>{_escape(item)}</li>" for item in payload["constraints"]), "{{NEXT_ACTIONS}}": _actions(payload["next_actions"]), "{{REFERENCES}}": _references(payload["references"]),
     }
@@ -405,7 +427,7 @@ def _validate_dependency(path: Path) -> list[str]:
 def _validate_svg(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     text_without_namespaces = re.sub(r"\bxmlns\s*=\s*(['\"])http://www\.w3\.org/2000/svg\1", "", text, flags=re.IGNORECASE)
-    patterns = (r"<\s*(?:script|foreignobject)\b", r"\b(?:xlink:)?href\s*=", r"https?://", r"@import\s*(?:url\s*\()?\s*['\"]?\s*(?://|[a-z][a-z0-9+.-]*:)", r"url\s*\(\s*['\"]?\s*(?://|[a-z][a-z0-9+.-]*:)", r"<!\s*(?:doctype|entity)\b")
+    patterns = (r"<\s*(?:script|foreignobject)\b", r"\b(?:xlink:)?href\s*=", r"https?://", r"@import\s*(?:url\s*\()?\s*['\"]?\s*(?://|[a-z][a-z0-9+.-]*:)", r"url\s*\(\s*['\"]?\s*(?://|(?!data:(?:font/|application/(?:x-)?font-))[a-z][a-z0-9+.-]*:)", r"<!\s*(?:doctype|entity)\b")
     if any(re.search(pattern, text_without_namespaces, re.IGNORECASE) for pattern in patterns):
         raise ContractError("unsafe SVG")
     try:
