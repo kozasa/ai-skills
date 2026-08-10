@@ -42,14 +42,18 @@ python3 <skill-dir>/scripts/render_fast.py \
 python3 <skill-dir>/scripts/render_story.py --input /absolute/story.json --output /absolute/implementation-story-<slug>/index.html
 ```
 
-The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `at_a_glance`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
+The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `at_a_glance`, `recommendation`, `background`, `request`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`. `story` and `hero_visual` are optional.
 
 - `at_a_glance`: `{what, why, how, human_decision}`. Keep each value to one to three short lines: what was done, why it was needed, how it was handled, and exactly what the human should confirm or decide.
-- `hero_visual`: optional `{path, alt, caption}` for an important handoff's ImageGen illustration. Use a safe relative raster path. Render it directly below the title and before `at_a_glance`.
-- `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`.
-- Keep Story First: optional ImageGen hero → HTML overview → judgment → background/request → Story → decisions → implementation → evidence → flow → verification/actions.
+- `hero_visual`: optional `{path, alt, caption}` for the handoff's ImageGen illustration. Use a safe relative 16:9 PNG path; the renderer verifies the PNG signature and aspect ratio. Render it directly below the title and before `at_a_glance`.
+- `impact`: renders as ビフォーアフター near the top of the page, right after `at_a_glance`. Write each item as a concrete before/after contrast the human can verify.
+- `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`. `human_checks` renders as 人間が見る点 in the emphasized left column of 判断概要.
+- `request`: the human's original request, written as 人間からの依頼 from the requester's point of view.
+- `implementation`: each item requires `importance` (`high`, `medium`, or `low`). The renderer sorts items high→low and shows a 重要度: 大/中/小 badge, so list what matters most and grade it honestly.
+- `story`: optional implementation process steps. When present it renders late in the page as a collapsed 実装プロセス appendix; omit it when the process adds nothing to the human decision.
+- Page order: optional ImageGen hero → HTML overview（変更の要点と確認事項）→ ビフォーアフター → 判断概要 → 背景と人間からの依頼 → 重要な判断 → 実装されたもの（1カラム）→ evidence → flow → verification/actions → optional 実装プロセス → references.
 - A reconstructed preview must display `コードから再構成した操作デモ`, use fictional data, include `aria-live`, and make no 外部通信. Embed it with `sandbox="allow-scripts"`.
-- Convert Mermaid during generation and provide a ローカルSVG. Do not load Mermaid or a CDN at viewing time. Keep HTML flow steps as a fallback.
+- Draw `flow.diagram_path` in standard flowchart notation — rectangles for steps, `shape: diamond` for decisions. The default is a D2 sketch diagram converted with `scripts/d2_to_svg.py --input flow.d2 --output diagrams/<name>.svg` (runs the `d2` CLI in sketch mode and pre-validates the SVG; requires `brew install d2`). Color-code node roles with D2 classes: decisions `fill "#fdf3d8"` / `stroke "#b08a2e"`, normal outcomes `fill "#e3f0e3"` / `stroke "#35633d"`, waits and errors `fill "#f7e3e0"` / `stroke "#963830"`. Write multi-line labels with `\n` inside quoted strings — never `|md` blocks, which emit foreignObject and fail validation. When the `d2` CLI is unavailable, fall back to a Mermaid flowchart via `scripts/mermaid_to_svg.py --input flow.mmd --output diagrams/<name>.svg` (wraps `npx @mermaid-js/mermaid-cli` with `securityLevel: strict` and `htmlLabels: false`). Both provide a ローカルSVG; do not load D2, Mermaid, or a CDN at viewing time. When a diagram is present the HTML flow steps render as a collapsed テキスト版フロー; they stay visible only as the last-resort fallback when no SVG is available.
 - Never invent a screen, link, test result, or recommendation. Mark unavailable evidence honestly.
 - Default output is `output/implementation-story-<slug>/index.html`; do not commit it unless asked.
 

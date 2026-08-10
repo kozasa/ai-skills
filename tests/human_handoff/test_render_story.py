@@ -47,12 +47,26 @@ class StoryRendererTest(unittest.TestCase):
 
     def test_story_first_order_and_asset_staging(self):
         page, output = self.render_valid_story()
-        labels = ["変更の要点と確認事項", "判断概要", "背景と依頼", "実装までのストーリー", "重要な判断", "実装されたもの", "変更の価値", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "参照"]
+        labels = ["変更の要点と確認事項", "ビフォーアフター", "判断概要", "人間が見る点", "未確認事項", "背景と依頼", "人間からの依頼", "重要な判断", "実装されたもの", "視覚的な証拠", "処理フロー", "検証結果", "次のアクション", "実装プロセス", "参照"]
         positions = [page.index(label) for label in labels]
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn("やったこと → なぜ必要か → どう対応したか → 確認してほしいこと", page)
+        self.assertNotIn("実装までのストーリー", page)
+        self.assertNotIn("変更の価値", page)
         self.assertIn('class="overview-primary"', page)
         self.assertIn('class="overview-details"', page)
+        self.assertIn('class="human-checks"', page)
+        self.assertIn('ビフォーアフター</h2><div class="ba-grid">', page)
+        self.assertIn('実装されたもの</h2><div class="grid-one">', page)
+        self.assertIn('差し戻してください。</p><div class="grid-one">', page)
+        self.assertIn('背景と依頼</h2><div class="grid-one">', page)
+        self.assertIn('次のアクション</h2><div class="grid-one">', page)
+        self.assertIn('.overview-details{display:grid;grid-template-columns:1fr;', page)
+        self.assertIn('<details class="process">', page)
+        self.assertIn("beforeprint", page)
+        self.assertIn("afterprint", page)
+        self.assertIn('<div class="ba-cell before"><span>Before</span>', page)
+        self.assertIn('<div class="ba-cell after"><span>After</span>', page)
         self.assertNotIn("Implementation Story</span>", page)
         for value in self.payload()["at_a_glance"].values():
             self.assertIn(value, page)
@@ -60,6 +74,59 @@ class StoryRendererTest(unittest.TestCase):
         self.assertTrue((output / "diagrams/bulk-update.svg").is_file())
         self.assertIn('sandbox="allow-scripts"', page)
         self.assertIn('src="diagrams/bulk-update.svg"', page)
+        self.assertIn('<details class="flow-steps"><summary>テキスト版フロー</summary>', page)
+        self.assertIn('<div class="diagram-viewer">', page)
+        self.assertIn('data-zoom="in"', page)
+        self.assertIn('data-zoom="out"', page)
+        self.assertIn('data-zoom="reset"', page)
+
+    def test_implementation_is_sorted_by_importance_with_labels(self):
+        payload = self.payload()
+        payload["implementation"] = [
+            {"title": "補助ログ", "body": "低優先の変更。", "importance": "low"},
+            {"title": "画面文言", "body": "中優先の変更。", "importance": "medium"},
+            {"title": "一括設定処理", "body": "中心の変更。", "importance": "high"},
+        ]
+        result, output = self.run_payload(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (output / "index.html").read_text(encoding="utf-8")
+        positions = [page.index(title) for title in ("一括設定処理", "画面文言", "補助ログ")]
+        self.assertEqual(positions, sorted(positions))
+        for label in ("重要度: 大", "重要度: 中", "重要度: 小"):
+            self.assertIn(label, page)
+
+    def test_implementation_importance_is_required_and_validated(self):
+        payload = self.payload()
+        payload["implementation"][0].pop("importance")
+        result, _ = self.run_payload(payload)
+        self.assertEqual(result.returncode, 2)
+        invalid = self.payload()
+        invalid["implementation"][0]["importance"] = "critical"
+        result, _ = self.run_payload(invalid)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("importance", result.stderr)
+
+    def test_flow_steps_stay_visible_without_a_diagram(self):
+        payload = self.payload()
+        payload["flow"].pop("diagram_path")
+        result, output = self.run_payload(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (output / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn('<details class="flow-steps">', page)
+        self.assertNotIn('<div class="diagram-viewer">', page)
+        self.assertIn('class="flow"', page)
+
+    def test_story_is_optional_and_renders_as_appendix_when_present(self):
+        payload = self.payload()
+        payload.pop("story")
+        result, output = self.run_payload(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (output / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("実装プロセス", page)
+        self.assertNotIn('{{', page)
+        page_with_story, _ = self.render_valid_story()
+        self.assertLess(page_with_story.index("検証結果"), page_with_story.index("実装プロセス"))
+        self.assertLess(page_with_story.index("実装プロセス"), page_with_story.index("参照"))
 
     def test_optional_imagegen_hero_is_staged_below_overview(self):
         payload = self.payload()
@@ -405,6 +472,27 @@ class StoryRendererTest(unittest.TestCase):
         self.assertTrue((output / "index.html").is_file())
         self.assertIn("failed to open output", result.stderr)
 
+    def test_svg_allows_self_contained_data_fonts_but_not_data_imports(self):
+        def add_font(source):
+            path = source / "diagrams/bulk-update.svg"
+            path.write_text(path.read_text(encoding="utf-8").replace("</svg>", '<style>@font-face{font-family:"d2";src:url("data:application/font-woff2;base64,AAAA")}</style></svg>'), encoding="utf-8")
+        result, _ = self.run_payload(mutate_asset=add_font)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        def add_import(source):
+            path = source / "diagrams/bulk-update.svg"
+            path.write_text(path.read_text(encoding="utf-8").replace("</svg>", '<style>@import url("data:text/css;base64,AAAA")</style></svg>'), encoding="utf-8")
+        result, _ = self.run_payload(mutate_asset=add_import)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("unsafe SVG", result.stderr)
+        for value in ('url("data:image/png;base64,AAAA")', 'url("data:text/html;base64,AAAA")'):
+            with self.subTest(value=value):
+                def add_non_font(source, css=value):
+                    path = source / "diagrams/bulk-update.svg"
+                    path.write_text(path.read_text(encoding="utf-8").replace("</svg>", f"<style>rect{{fill:{css}}}</style></svg>"), encoding="utf-8")
+                result, _ = self.run_payload(mutate_asset=add_non_font)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("unsafe SVG", result.stderr)
+
     def test_flow_diagram_must_be_well_formed_svg(self):
         replacements = ["<svg>", "<root></root>"]
         for content in replacements:
@@ -418,11 +506,11 @@ class StoryRendererTest(unittest.TestCase):
     def test_skill_routes_and_boundaries_are_documented(self):
         handoff = (ROOT / "skills/human-handoff/SKILL.md").read_text(encoding="utf-8")
         quick = (ROOT / "skills/quick-html/SKILL.md").read_text(encoding="utf-8")
-        for text in ["Story First", "人間のログイン", "再構成HTML", "最終判断は人間"]:
+        for text in ["Story First", "人間のログイン", "再構成HTML", "最終判断は人間", "人間からの依頼"]:
             self.assertIn(text, handoff)
         self.assertIn("matching normalized contract", handoff)
         self.assertIn("FAST or STORY mode", handoff)
-        for text in ["merge-recommended", "conditional", "do-not-merge", "コードから再構成した操作デモ", "ローカルSVG", "外部通信"]:
+        for text in ["merge-recommended", "conditional", "do-not-merge", "コードから再構成した操作デモ", "ローカルSVG", "外部通信", "ビフォーアフター", "実装プロセス", "Mermaid"]:
             self.assertIn(text, quick)
 
 
