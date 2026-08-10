@@ -42,7 +42,9 @@ python3 <skill-dir>/scripts/render_fast.py \
 python3 <skill-dir>/scripts/render_story.py --input /absolute/story.json --output /absolute/implementation-story-<slug>/index.html
 ```
 
-The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
+The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `at_a_glance`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
+
+- `at_a_glance`: `{what, why, how}`. Write each value in roughly one to three lines so the reader can immediately see what changed, why it was needed, and how it was implemented. This block is rendered directly below the title and before the judgment summary.
 
 - `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`.
 - Keep Story First: background/request → Story → decisions → implementation → evidence → flow → verification/actions.

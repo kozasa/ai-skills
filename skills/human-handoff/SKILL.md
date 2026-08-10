@@ -76,6 +76,8 @@ For a normal repository, write the result under `output/explainer-<slug>/index.h
 
 Keep Story First: judgment summary, background/request, Story, decisions, and implementation stay before visual evidence. The Story explains causality; evidence confirms it.
 
+Begin every STORY contract with `at_a_glance: {what, why, how}`. Keep each value to roughly one to three lines: `what` states the delivered outcome, `why` states the problem that caused the work, and `how` states the essential implementation approach. Do not merely repeat the title or replace concrete facts with vague summary language.
+
 Collect evidence in this order: authentication-free existing preview, automatically started local UI, usable existing signed-in session, interactive reconstructed HTML, then static explanation. If obtaining a screen requires 人間のログイン, credentials, or manual environment preparation, stop that attempt and use 再構成HTML. Never increase human work merely to obtain a screenshot.
 
 Reconstructed previews must say `コードから再構成した操作デモ` and use fictional data with no external communication. Reproduce the changed operation and state transitions, not the complete appearance. Label actual, screenshot, and reconstructed evidence honestly.
