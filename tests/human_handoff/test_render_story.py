@@ -368,8 +368,10 @@ class StoryRendererTest(unittest.TestCase):
         quick = (ROOT / "skills/quick-html/SKILL.md").read_text(encoding="utf-8")
         for text in ["Story First", "人間のログイン", "再構成HTML", "最終判断は人間"]:
             self.assertIn(text, handoff)
-        self.assertIn("matching normalized contract", handoff)
-        self.assertIn("FAST or STORY mode", handoff)
+        self.assertIn("Default to Implementation Story", handoff)
+        self.assertIn("one-line status", handoff)
+        self.assertNotIn("FAST input contract", handoff)
+        self.assertNotIn("FAST HTML", handoff)
         for text in ["merge-recommended", "conditional", "do-not-merge", "コードから再構成した操作デモ", "ローカルSVG", "外部通信"]:
             self.assertIn(text, quick)
 
