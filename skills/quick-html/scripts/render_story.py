@@ -11,15 +11,16 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
 from typing import Any
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
+import zlib
 
 
-ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
-AT_A_GLANCE_KEYS = {"what", "why", "how"}
+ROOT_KEYS = {"slug", "title", "summary", "at_a_glance", "hero_visual", "recommendation", "background", "request", "story", "decisions", "implementation", "impact", "visuals", "flow", "verification", "constraints", "next_actions", "references"}
 OBJECT_SPECS = {
     "story": ({"title", "body", "evidence"}, ("title", "body", "evidence")),
     "decisions": ({"title", "body", "reason"}, ("title", "body", "reason")),
@@ -29,6 +30,8 @@ OBJECT_SPECS = {
     "references": ({"label", "url", "description"}, ("label", "description")),
 }
 RECOMMENDATION_KEYS = {"status", "reason", "unverified", "human_checks"}
+AT_A_GLANCE_KEYS = {"what", "why", "how", "human_decision"}
+HERO_VISUAL_KEYS = {"path", "alt", "caption"}
 VISUAL_KEYS = {"title", "type", "path", "description"}
 FLOW_KEYS = {"title", "diagram_path", "description", "steps"}
 FLOW_STEP_KEYS = {"condition", "result"}
@@ -102,10 +105,18 @@ def validate_payload(value: object) -> dict[str, Any]:
 
     at_a_glance = _dict(payload.get("at_a_glance"), "at_a_glance")
     _keys(at_a_glance, AT_A_GLANCE_KEYS, "at_a_glance")
-    for field in ("what", "why", "how"):
-        if field not in at_a_glance:
-            raise ContractError(f"at_a_glance.{field} is required")
-        _string(at_a_glance[field], f"at_a_glance.{field}")
+    for field in AT_A_GLANCE_KEYS:
+        _string(at_a_glance.get(field), f"at_a_glance.{field}")
+
+    hero_visual = payload.get("hero_visual")
+    if hero_visual is not None:
+        hero_visual = _dict(hero_visual, "hero_visual")
+        _keys(hero_visual, HERO_VISUAL_KEYS, "hero_visual")
+        for field in HERO_VISUAL_KEYS:
+            _string(hero_visual.get(field), f"hero_visual.{field}")
+        hero_path = _relative(hero_visual["path"], "hero_visual.path")
+        if PurePosixPath(hero_path).suffix.lower() != ".png":
+            raise ContractError("hero_visual.path must use a PNG image")
 
     recommendation = _dict(payload.get("recommendation"), "recommendation")
     _keys(recommendation, RECOMMENDATION_KEYS, "recommendation")
@@ -184,17 +195,16 @@ def _recommendation(item):
 
 
 def _at_a_glance(item):
-    nodes = (
-        ("なぜ実装したか", item["why"], ""),
-        ("何をしたか", item["what"], " conclusion-node-main"),
-        ("どんな実装をしたか", item["how"], ""),
-    )
-    content = []
-    for index, (label, value, modifier) in enumerate(nodes):
-        if index:
-            content.append('<span class="conclusion-arrow" aria-hidden="true">→</span>')
-        content.append(f'<div class="conclusion-node{modifier}"><h3>{label}</h3><p>{_escape(value)}</p></div>')
-    return f'<section class="conclusion"><span class="section-num">At a glance</span><h2>今回の結論</h2><div class="conclusion-flow">{"".join(content)}</div></section>'
+    labels = (("why", "なぜ必要か"), ("how", "どう対応したか"), ("human_decision", "確認してほしいこと"))
+    details = "".join(f'<article class="overview-card"><span>{label}</span><p>{_escape(item[key])}</p></article>' for key, label in labels)
+    primary = f'<article class="overview-primary"><span>やったこと</span><p>{_escape(item["what"])}</p></article>'
+    return '<section class="overview"><span class="section-num">At a glance</span><h2>変更の要点と確認事項</h2>' + primary + '<div class="overview-details">' + details + "</div></section>"
+
+
+def _hero_visual(item):
+    if item is None:
+        return ""
+    return f'<figure class="hero-visual"><div class="visual-head"><span class="tag">ImageGen</span><strong>重要ポイントの説明図</strong></div><img src="{_escape(item["path"])}" alt="{_escape(item["alt"])}"><figcaption>{_escape(item["caption"])}</figcaption></figure>'
 
 
 def _story(items):
@@ -246,7 +256,7 @@ def _references(items):
 
 def render(payload, template):
     replacements = {
-        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
+        "{{TITLE}}": _escape(payload["title"]), "{{SUMMARY}}": _escape(payload["summary"]), "{{AT_A_GLANCE}}": _at_a_glance(payload["at_a_glance"]), "{{HERO_VISUAL}}": _hero_visual(payload.get("hero_visual")), "{{RECOMMENDATION}}": _recommendation(payload["recommendation"]),
         "{{BACKGROUND}}": _escape(payload["background"]), "{{REQUEST}}": _escape(payload["request"]), "{{STORY}}": _story(payload["story"]),
         "{{DECISIONS}}": _cards(payload["decisions"], "reason"), "{{IMPLEMENTATION}}": _cards(payload["implementation"]), "{{IMPACT}}": _impact(payload["impact"]),
         "{{VISUALS}}": _visuals(payload["visuals"]), "{{FLOW}}": _flow(payload["flow"]), "{{VERIFICATION}}": _verification(payload["verification"]),
@@ -415,6 +425,91 @@ def _with_preview_csp(text: str) -> str:
     return staged
 
 
+def _validate_png(path: Path) -> None:
+    if path.stat().st_size > 100 * 1024 * 1024:
+        raise ContractError("hero_visual must be a valid PNG image")
+    data = path.read_bytes()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ContractError("hero_visual must be a valid PNG image")
+    offset = 8
+    ihdr = None
+    idat_parts = []
+    seen_iend = False
+    seen_plte = False
+    idat_ended = False
+    while offset < len(data):
+        if offset + 12 > len(data):
+            raise ContractError("hero_visual must be a valid PNG image")
+        length = struct.unpack(">I", data[offset:offset + 4])[0]
+        kind = data[offset + 4:offset + 8]
+        end = offset + 12 + length
+        if end > len(data):
+            raise ContractError("hero_visual must be a valid PNG image")
+        payload = data[offset + 8:offset + 8 + length]
+        crc = struct.unpack(">I", data[offset + 8 + length:end])[0]
+        if zlib.crc32(kind + payload) & 0xFFFFFFFF != crc:
+            raise ContractError("hero_visual must be a valid PNG image")
+        if ihdr is None:
+            if kind != b"IHDR" or length != 13:
+                raise ContractError("hero_visual must be a valid PNG image")
+            ihdr = struct.unpack(">IIBBBBB", payload)
+        elif kind == b"IHDR":
+            raise ContractError("hero_visual must be a valid PNG image")
+        if kind not in {b"IHDR", b"PLTE", b"IDAT", b"IEND"} and kind[0] & 0x20 == 0:
+            raise ContractError("hero_visual must be a valid PNG image")
+        if kind == b"PLTE":
+            if seen_plte or idat_parts or length == 0 or length % 3 or length > 768:
+                raise ContractError("hero_visual must be a valid PNG image")
+            seen_plte = True
+        if kind == b"IDAT":
+            if idat_ended:
+                raise ContractError("hero_visual must be a valid PNG image")
+            idat_parts.append(payload)
+        elif idat_parts and kind != b"IEND":
+            idat_ended = True
+        if kind == b"IEND":
+            if length != 0 or end != len(data) or not idat_parts:
+                raise ContractError("hero_visual must be a valid PNG image")
+            seen_iend = True
+            break
+        offset = end
+    if ihdr is None or not idat_parts or not seen_iend:
+        raise ContractError("hero_visual must be a valid PNG image")
+    width, height, depth, color, compression, filter_method, interlace = ihdr
+    depths = {0: {1, 2, 4, 8, 16}, 2: {8, 16}, 3: {1, 2, 4, 8}, 4: {8, 16}, 6: {8, 16}}
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
+    if not width or not height or width > 16384 or height > 16384:
+        raise ContractError("hero_visual must be a valid PNG image")
+    if abs(width * 9 - height * 16) * 100 > width * 9:
+        raise ContractError("hero_visual must use an approximately 16:9 PNG image")
+    if color not in depths or depth not in depths[color] or compression != 0 or filter_method != 0 or interlace not in {0, 1}:
+        raise ContractError("hero_visual must be a valid PNG image")
+    if (color == 3 and not seen_plte) or (color in {0, 4} and seen_plte):
+        raise ContractError("hero_visual must be a valid PNG image")
+    passes = [(0, 0, 1, 1)] if interlace == 0 else [(0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4), (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2)]
+    layout = []
+    for start_x, start_y, step_x, step_y in passes:
+        pass_width = 0 if width <= start_x else (width - start_x + step_x - 1) // step_x
+        pass_height = 0 if height <= start_y else (height - start_y + step_y - 1) // step_y
+        layout.append((pass_height, (pass_width * channels[color] * depth + 7) // 8))
+    expected = sum(rows * (row_bytes + 1) for rows, row_bytes in layout)
+    if expected > 256 * 1024 * 1024:
+        raise ContractError("hero_visual must be a valid PNG image")
+    decoder = zlib.decompressobj()
+    raw = decoder.decompress(b"".join(idat_parts), expected + 1)
+    if len(raw) > expected or decoder.unconsumed_tail:
+        raise ContractError("hero_visual must be a valid PNG image")
+    raw += decoder.flush(expected + 1 - len(raw))
+    if not decoder.eof or decoder.unused_data or len(raw) != expected:
+        raise ContractError("hero_visual must be a valid PNG image")
+    raw_offset = 0
+    for rows, row_bytes in layout:
+        for _ in range(rows):
+            if raw[raw_offset] > 4:
+                raise ContractError("hero_visual must be a valid PNG image")
+            raw_offset += row_bytes + 1
+
+
 def _stage(relative: str, source_root: Path, output_root: Path, kind: str) -> list[str]:
     candidate = source_root / relative
     path_parts = PurePosixPath(relative).parts
@@ -435,6 +530,8 @@ def _stage(relative: str, source_root: Path, output_root: Path, kind: str) -> li
         dependencies = _validate_dependency(source)
     elif kind == "svg":
         _validate_svg(source)
+    elif kind == "hero-visual":
+        _validate_png(source)
     target = output_root / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     if not _inside(target.parent.resolve(), output_root) or target.is_symlink():
@@ -459,6 +556,10 @@ def stage_assets(payload, input_path, output_path):
     output_root.mkdir(parents=True, exist_ok=True)
     prefix = PurePosixPath(".story-assets") if source_root == output_root else PurePosixPath()
     staging_root = output_root / prefix
+    if payload.get("hero_visual"):
+        original_path = payload["hero_visual"]["path"]
+        _stage(original_path, source_root, staging_root, "hero-visual")
+        payload["hero_visual"]["path"] = (prefix / original_path).as_posix()
     for item in payload["visuals"]:
         if item.get("path"):
             original_path = item["path"]

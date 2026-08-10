@@ -12,8 +12,8 @@ description: Use when creating a local HTML decision report, completion report, 
 
 処理開始前に必ずFAST、STORY、FULLのいずれかを決める。
 
-- **FAST**: `--fast <input.json>`、`type` が `decision` / `completion` の正規化JSON、または `human-handoff` からの呼び出し。
-- **STORY**: `scripts/render_story.py --input <input.json> --output <index.html>`、PR後の実装経緯、または `human-handoff` のImplementation Story。
+- **FAST**: `--fast <input.json>`、または`type`が`decision` / `completion`の正規化JSON。`human-handoff`からは、明示的にFASTを指定した場合か、一時的でSTORYが過剰な例外時だけ選ぶ。
+- **STORY**: `scripts/render_story.py --input <input.json> --output <index.html>`、PR後の実装経緯、または`human-handoff`の既定であるImplementation Story。
 - **FULL**: 上記以外のトピック文字列、URL、ローカルファイルパス、または本格的な調査・AI画像付き解説の依頼。
 
 曖昧な場合、既に十分なcontextがあり速度が目的ならFASTを選ぶ。追加調査や生成画像が成果物の価値に必要ならFULLを選ぶ。
@@ -44,10 +44,10 @@ python3 <skill-dir>/scripts/render_story.py --input /absolute/story.json --outpu
 
 The complete contract example is `tests/human_handoff/fixtures/implementation-story/report.json`. Required roots are `slug`, `title`, `summary`, `at_a_glance`, `recommendation`, `background`, `request`, `story`, `decisions`, `implementation`, `impact`, `visuals`, `flow`, `verification`, `constraints`, `next_actions`, and `references`.
 
-- `at_a_glance`: `{what, why, how}`. Write each value in roughly one to three lines so the reader can immediately see what changed, why it was needed, and how it was implemented. This block is rendered directly below the title and before the judgment summary.
-
+- `at_a_glance`: `{what, why, how, human_decision}`. Keep each value to one to three short lines: what was done, why it was needed, how it was handled, and exactly what the human should confirm or decide.
+- `hero_visual`: optional `{path, alt, caption}` for an important handoff's ImageGen illustration. Use a safe relative raster path. Render it directly below the title and before `at_a_glance`.
 - `recommendation.status`: `merge-recommended`, `conditional`, or `do-not-merge`. A blocking verification not marked `passed` forbids `merge-recommended`.
-- Keep Story First: background/request → Story → decisions → implementation → evidence → flow → verification/actions.
+- Keep Story First: optional ImageGen hero → HTML overview → judgment → background/request → Story → decisions → implementation → evidence → flow → verification/actions.
 - A reconstructed preview must display `コードから再構成した操作デモ`, use fictional data, include `aria-live`, and make no 外部通信. Embed it with `sandbox="allow-scripts"`.
 - Convert Mermaid during generation and provide a ローカルSVG. Do not load Mermaid or a CDN at viewing time. Keep HTML flow steps as a fallback.
 - Never invent a screen, link, test result, or recommendation. Mark unavailable evidence honestly.
