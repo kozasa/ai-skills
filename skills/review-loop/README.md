@@ -21,6 +21,15 @@
 
 AIの判定は推奨であり、最終的なマージ判断は人間が行います。
 
+## human-handoff 連携
+
+`マージ推奨` または `条件付きマージ` で終了し、`human-handoff` スキルが利用可能な場合は、
+レビュー結果と人間の最終確認事項を handoff へ引き渡します。`マージ非推奨` では起動しません。
+
+`~/.codex/skills/review-loop` に導入した場合、この動作は特定のプロジェクトに限定されず、
+review-loop を起動したすべてのリポジトリに適用されます。各リポジトリへスキルを複製する
+必要はありません。
+
 ## 起動
 
 ```text
@@ -55,4 +64,5 @@ Claude Codeだけで使う場合は、`skills/review-loop` を `~/.claude/skills
 - `SKILL.md`: スキル本体
 - `scripts/codex_review.py`: Codex向けの独立・境界付きレビューランナー
 - `tests/test_codex_review_runner.py`: ランナーの回帰テスト
+- `tests/test_human_handoff_contract.py`: handoff 発火条件の契約テスト
 - `agents/openai.yaml`: Codex向けの表示情報と起動プロンプト
