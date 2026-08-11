@@ -241,6 +241,33 @@ output.write_text(json.dumps({'high': [], 'low': []}))
         self.assertIn("review packet exceeds", result.stderr)
         self.assertFalse((capture / "stdin.txt").exists())
 
+    def test_includes_untracked_file_with_newline_in_name(self):
+        unusual = self.repo / "line\nbreak.txt"
+        unusual.write_text("must be reviewed\n")
+        capture = self.root / "capture-unusual-name"
+        capture.mkdir()
+        env = os.environ.copy()
+        env["FAKE_CAPTURE_DIR"] = str(capture)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUNNER),
+                "--repo", str(self.repo),
+                "--base", "main",
+                "--round", "1",
+                "--output", str(self.root / "unusual-name.json"),
+                "--codex-bin", str(self._fake_codex()),
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        prompt = (capture / "stdin.txt").read_text()
+        self.assertIn("must be reviewed", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

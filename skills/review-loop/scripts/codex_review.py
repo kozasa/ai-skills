@@ -75,11 +75,14 @@ relative file paths and exact changed-line references. Return empty arrays when 
     untracked = run_git(
         repo,
         "ls-files",
+        "-z",
         "--others",
         "--exclude-standard",
         max_bytes=remaining(),
-    ).splitlines()
+    ).split("\0")
     for relative in untracked:
+        if not relative:
+            continue
         path = repo / relative
         if path.is_symlink():
             raise ValueError(f"untracked symlink is not allowed: {relative}")
@@ -92,7 +95,8 @@ relative file paths and exact changed-line references. Return empty arrays when 
             content = data.decode("utf-8")
         except UnicodeDecodeError:
             content = f"<binary file: {len(data)} bytes>"
-        append(f"\n### Untracked: {relative}\n\n{content}\n")
+        display_name = json.dumps(relative, ensure_ascii=False)
+        append(f"\n### Untracked: {display_name}\n\n{content}\n")
 
     parts.append(closing)
     return "".join(parts)
