@@ -14,6 +14,7 @@ class HumanHandoffContractTests(unittest.TestCase):
         self.assertIn("human-handoff", text)
         self.assertIn("マージ非推奨では起動しない", text)
         self.assertIn("利用可能", text)
+        self.assertIn("Codex / Claude Code 共通", text)
 
     def test_readme_documents_repository_independent_handoff(self):
         text = README.read_text()
@@ -22,6 +23,7 @@ class HumanHandoffContractTests(unittest.TestCase):
         self.assertIn("マージ推奨", text)
         self.assertIn("条件付きマージ", text)
         self.assertIn("human-handoff", text)
+        self.assertIn("Codex / Claude Code", text)
 
 
 if __name__ == "__main__":
