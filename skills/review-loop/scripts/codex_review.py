@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+import re
 import secrets
 import subprocess
 import sys
@@ -18,6 +19,14 @@ import tempfile
 MAX_PACKET_CHARS = 1_000_000
 MAX_UTF8_BYTES_PER_CHAR = 4
 BINARY_PROBE_BYTES = 8192
+
+# レビューに使うモデルと深さの既定。CLI の既定に任せると更新のたびに
+# 知らないうちに変わるため、ここで固定する。
+DEFAULT_MODEL = "gpt-6.2-sol"
+DEFAULT_EFFORT = "high"
+DEFAULT_TIMEOUT_SECONDS = 600
+# -c に TOML の文字列として渡すので、引用符や改行で壊れない文字だけを許す。
+CONFIG_VALUE_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
 
 
 def run_git(repo: Path, *args: str, max_bytes: int) -> str:
@@ -236,6 +245,34 @@ def validate_result(output: Path) -> None:
         raise ValueError("review result fields must be arrays")
 
 
+def toml_string_option(name: str, value: str) -> str:
+    """Codex の -c に渡す `name="value"` を作る。
+
+    入力: 設定名と値。値は英数字と `.` `-` `_` だけを許す。
+    出力: TOML の文字列としてダブルクォートで囲んだ `name="value"`。
+    分岐: 許さない文字 (`"` や改行など) を含む・空のときは ValueError で断る。
+    """
+    if not CONFIG_VALUE_PATTERN.fullmatch(value):
+        raise ValueError(f"invalid {name} value: {value!r}")
+    return f'{name}="{value}"'
+
+
+def codex_failure_message(returncode: int, trace: str) -> str:
+    """Codex が失敗したときのエラー文を作る。
+
+    入力: Codex の終了コードと、その stdout/stderr を合わせたトレース。
+    出力: 呼び出し元へ返すエラー文。
+    分岐: トレースに `not supported` があれば、モデル指定を受け付けない古い CLI の
+    可能性が高いので、CLI を上げる案内を足す。-c を外した自動のやり直しはしない
+    (どのモデルでレビューしたか分からなくなるため)。
+    """
+    message = f"codex exec exited with status {returncode}"
+    if "not supported" in trace:
+        message += ("; Codex CLI が古い可能性があります。`codex --version` を確かめ、"
+                    "0.169.1 以上に上げてください")
+    return message
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, required=True)
@@ -247,11 +284,21 @@ def parse_args() -> argparse.Namespace:
                         help="Reference byte-identical copies of unchanged HEAD blobs; record every path")
     parser.add_argument("--focus-path", action="append", default=[],
                         help="Limit round 2+ review to a repository-relative affected path; repeatable")
-    parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--model", default=DEFAULT_MODEL,
+                        help=f"Codex model for the review (default: {DEFAULT_MODEL})")
+    parser.add_argument("--effort", default=DEFAULT_EFFORT,
+                        help=f"Codex model_reasoning_effort (default: {DEFAULT_EFFORT})")
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     return parser.parse_args()
 
 
 def main() -> int:
+    """固定した diff を 1 回だけ Codex にレビューさせる。
+
+    入力: コマンドライン引数 (対象リポジトリ・基準・ラウンド・出力先・モデル・深さなど)。
+    出力: 成功なら 0、入力の不備や Codex の失敗なら 1 (理由は stderr)。
+    分岐: モデル・深さの値が不正なら Codex を起動せずに 1 を返す。
+    """
     args = parse_args()
     repo = args.repo.resolve()
     requested_output = args.output.expanduser()
@@ -259,6 +306,8 @@ def main() -> int:
         requested_output = Path.cwd() / requested_output
     output = requested_output.parent.resolve() / requested_output.name
     try:
+        model_option = toml_string_option("model", args.model)
+        effort_option = toml_string_option("model_reasoning_effort", args.effort)
         focus_paths = normalize_focus_paths(args.focus_path)
         if focus_paths and args.round == 1:
             raise ValueError("focus paths are only allowed from round 2")
@@ -278,6 +327,10 @@ def main() -> int:
                 "exec",
                 "--ephemeral",
                 "--ignore-user-config",
+                "-c",
+                model_option,
+                "-c",
+                effort_option,
                 "--ignore-rules",
                 "--skip-git-repo-check",
                 "--sandbox",
@@ -301,8 +354,10 @@ def main() -> int:
                     text=True,
                     timeout=args.timeout,
                 )
+                trace.seek(0)
+                trace_text = trace.read()
             if result.returncode != 0:
-                raise RuntimeError(f"codex exec exited with status {result.returncode}")
+                raise RuntimeError(codex_failure_message(result.returncode, trace_text))
         validate_result(output)
     except (json.JSONDecodeError, OSError, subprocess.SubprocessError, ValueError, RuntimeError) as error:
         print(f"codex review failed: {error}", file=sys.stderr)

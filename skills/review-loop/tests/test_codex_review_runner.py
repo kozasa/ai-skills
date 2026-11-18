@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -6,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 RUNNER = Path(__file__).parents[1] / "scripts" / "codex_review.py"
@@ -509,6 +511,141 @@ output.write_text(json.dumps({'blockers': [], 'follow_ups': [], 'suggestions': [
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('### Untracked: "copy.js"\n\nnew implementation',
                       (capture / "stdin.txt").read_text())
+
+
+    def _run_runner(self, capture, codex_bin, *extra):
+        """偽の codex でランナーを 1 回起動し、結果を返す。"""
+        env = os.environ.copy()
+        env["FAKE_CAPTURE_DIR"] = str(capture)
+        return subprocess.run(
+            [
+                sys.executable,
+                str(RUNNER),
+                "--repo", str(self.repo),
+                "--base", "main",
+                "--round", "1",
+                "--output", str(self.root / "model.json"),
+                "--codex-bin", str(codex_bin),
+                "--timeout", "10",
+                *extra,
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+
+    @staticmethod
+    def _config_values(args):
+        """Codex の起動引数から -c の値だけを抜き出す。"""
+        return [args[index + 1] for index, arg in enumerate(args) if arg == "-c"]
+
+    def test_pins_default_model_and_effort(self):
+        """既定ではモデル gpt-6.2-sol・深さ high を -c で Codex に渡す。"""
+        capture = self.root / "capture-default-model"
+        capture.mkdir()
+
+        result = self._run_runner(capture, self._fake_codex())
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = json.loads((capture / "args.json").read_text())
+        self.assertEqual(
+            self._config_values(args),
+            ['model="gpt-6.2-sol"', 'model_reasoning_effort="high"'],
+        )
+        self.assertLess(args.index("--ignore-user-config"), args.index("-c"))
+        self.assertLess(args.index("-c"), args.index("-"))
+
+    def test_model_and_effort_can_be_overridden(self):
+        """--model と --effort を渡すと、その値で Codex を起動する。"""
+        capture = self.root / "capture-override-model"
+        capture.mkdir()
+
+        result = self._run_runner(capture, self._fake_codex(),
+                                  "--model", "gpt-6.1-terra", "--effort", "medium")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = json.loads((capture / "args.json").read_text())
+        self.assertEqual(
+            self._config_values(args),
+            ['model="gpt-6.1-terra"', 'model_reasoning_effort="medium"'],
+        )
+
+    def test_rejects_invalid_model_or_effort_without_starting_codex(self):
+        """TOML 文字列を壊す値は失敗にし、Codex を起動しない。"""
+        for option, value in (
+            ("--model", 'gpt"; evil="x'),
+            ("--model", "gpt\nx"),
+            ("--model", ""),
+            ("--effort", 'high"'),
+            ("--effort", "high low"),
+        ):
+            with self.subTest(option=option, value=value):
+                capture = self.root / f"capture-invalid-{abs(hash((option, value)))}"
+                capture.mkdir()
+
+                result = self._run_runner(capture, self._fake_codex(), option, value)
+
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("invalid", result.stderr)
+                self.assertFalse((capture / "args.json").exists())
+
+    def test_default_timeout_is_600_seconds(self):
+        """--timeout を省くと Codex を 600 秒まで待つ。"""
+        spec = importlib.util.spec_from_file_location("codex_review_under_test", RUNNER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        argv = ["codex_review.py", "--repo", ".", "--base", "main",
+                "--round", "1", "--output", "out.json"]
+
+        with mock.patch.object(sys, "argv", argv):
+            args = module.parse_args()
+
+        self.assertEqual(args.timeout, 600)
+
+    def test_suggests_upgrading_cli_when_model_is_not_supported(self):
+        """Codex が not supported で失敗したら、CLI を上げる案内をエラー文に出す。"""
+        capture = self.root / "capture-unsupported"
+        capture.mkdir()
+        fake = self.root / "fake-codex-unsupported"
+        fake.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, sys\n"
+            "from pathlib import Path\n"
+            "capture = Path(os.environ['FAKE_CAPTURE_DIR'])\n"
+            "(capture / 'args.json').write_text(json.dumps(sys.argv[1:]))\n"
+            "sys.stdin.read()\n"
+            "print(\"Error: model is not supported\", file=sys.stderr)\n"
+            "sys.exit(1)\n"
+        )
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+
+        result = self._run_runner(capture, fake)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("codex --version", result.stderr)
+        self.assertIn("0.169.1", result.stderr)
+        args = json.loads((capture / "args.json").read_text())
+        self.assertEqual(len(self._config_values(args)), 2)
+
+    def test_plain_codex_failure_has_no_upgrade_hint(self):
+        """not supported 以外の失敗では、CLI を上げる案内を出さない。"""
+        capture = self.root / "capture-plain-failure"
+        capture.mkdir()
+        fake = self.root / "fake-codex-failure"
+        fake.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "sys.stdin.read()\n"
+            "print(\"Error: network down\", file=sys.stderr)\n"
+            "sys.exit(2)\n"
+        )
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+
+        result = self._run_runner(capture, fake)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("exited with status 2", result.stderr)
+        self.assertNotIn("codex --version", result.stderr)
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@
 - Codexでは固定したdiffを空の一時ディレクトリのread-only新規インスタンスへ渡してレビュー
 - 固定diffはmerge-base以降のbranch差分とHEAD以降の未コミット差分を分離し、base側だけの新規commitを逆向きの削除として扱わない
 - 通常文脈10行、packetは1,000,000文字以下に制限し、Codexの入力上限超過を防止
+- Codexのモデルと深さは既定で `gpt-6.2-sol` / `high` に固定（`--model` / `--effort` で変更可、`--timeout` 既定600秒）。`not supported` で失敗したら `codex --version` を確かめ、CLIを0.169.1以上に上げる
 
 ## 最終マージ判定
 
@@ -52,6 +53,9 @@ cp -R ai-skills/skills/review-loop ~/.codex/skills/review-loop
 ```
 
 既存の `~/.codex/skills/review-loop` を更新する場合は、内容を確認してから置き換えてください。
+
+更新をすぐ効かせたい場合は、コピーの代わりに clone へのシンボリックリンクでも構いません:
+`ln -s <clone>/skills/review-loop ~/.codex/skills/review-loop`
 
 ## Claude Codeへの導入
 

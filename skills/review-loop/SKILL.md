@@ -52,6 +52,9 @@ R1は変更全体を対象とする。R2以降は修正差分と影響範囲に�
   ラウンド固有の結果ファイルを指定して次の形式で実行する:
   `python3 <skill-dir>/scripts/codex_review.py --repo <repo-root> --base <base-branch> --round <R> --output <result.json>`。
   R2以降は、記録した各対象パスを `--focus-path <repo-relative-path>` として繰り返し指定する。
+  モデルと深さは既定で `gpt-6.2-sol` / `high` に固定しており、`--model` / `--effort` で変えられる。
+  `--timeout` の既定は600秒。Codexが `not supported` で失敗したら、`codex --version` を確かめ
+  CLIを0.169.1以上に上げる（`-c` を外してやり直さない）。
   ランナーは `[review-loop-child]`、`--ephemeral`、read-only sandbox、空の作業ディレクトリ、
   merge-base以降のbranch差分とHEAD以降の未コミット差分を分けた固定diff入力（通常文脈10行）、
   標準出力の抑制、構造化出力、Codexのturn入力上限を下回る
