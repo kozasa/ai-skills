@@ -22,6 +22,12 @@ class ConvergencePolicyTests(unittest.TestCase):
         self.assertIn("/code-review medium <path1> <path2>", self.text)
         self.assertIn("CHANGELOG.md#21329", self.text)
 
+    def test_claude_code_r1_checks_upstream_before_no_target(self):
+        """upstream が基準ブランチでなければ、R1 も変更ファイルを並べて渡す。"""
+        self.assertIn("git rev-parse --abbrev-ref @{upstream}", self.text)
+        self.assertIn("git diff --name-only <基準ブランチ>...HEAD", self.text)
+        self.assertIn("Phase 0）の引用", self.text)
+
     def test_findings_have_three_actionable_levels(self):
         """指摘分類ごとの処置が明記されている。"""
         self.assertIn("ブロッカー", self.text)

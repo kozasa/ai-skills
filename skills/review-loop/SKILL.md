@@ -46,6 +46,11 @@ R1は変更全体を対象とする。R2以降は修正差分と影響範囲に�
   比べてレビューし、複数commitで差分を失う不具合も同じ版で直った）。追跡中ファイルの未コミット変更は
   含まれるが、未追跡ファイルは含まれないため、R1の前に `git status` で未追跡ファイルが無いか確かめ、
   あれば `git add -N <path>` してから起動する。
+  ただし `code-review` の指示（Phase 0）の引用では、対象なしは upstream があればそれと比べるとあり、
+  CHANGELOG の「既定ブランチと比べる」と食い違う。そのため R1 の前に
+  `git rev-parse --abbrev-ref @{upstream}` を確かめ、upstream が基準ブランチ（`origin/main` 等）でない
+  （push 済みの同名ブランチなど）か取れないときは、R1 も `git diff --name-only <基準ブランチ>...HEAD` と
+  未コミット・未追跡の変更ファイルを並べて対象として渡す。
   R2以降は、記録した対象パス（準備の手順4の欄）を `code-review` の対象として並べて渡す。
   例: `/code-review medium <path1> <path2>`（Skill ツールなら args に `medium <path1> <path2>`）。
   Codex の `--focus-path` と同じ考え方で、対象パスの外を探索し直すラウンドにしない。
