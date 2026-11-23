@@ -42,6 +42,15 @@ R1は変更全体を対象とする。R2以降は修正差分と影響範囲に�
 
 - **Claude Code の場合**: Skill ツールで `code-review` を起動する（effort: medium）。
   自分の記憶や直前の作業内容からの推測でレビューを代用してはならない。
+  R1は対象なしで起動する（2.1.329以降、対象なしは多くのモデルでブランチ全体を既定ブランチと
+  比べてレビューし、複数commitで差分を失う不具合も同じ版で直った）。追跡中ファイルの未コミット変更は
+  含まれるが、未追跡ファイルは含まれないため、R1の前に `git status` で未追跡ファイルが無いか確かめ、
+  あれば `git add -N <path>` してから起動する。
+  R2以降は、記録した対象パス（準備の手順4の欄）を `code-review` の対象として並べて渡す。
+  例: `/code-review medium <path1> <path2>`（Skill ツールなら args に `medium <path1> <path2>`）。
+  Codex の `--focus-path` と同じ考え方で、対象パスの外を探索し直すラウンドにしない。
+  出典: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md#21329
+  （これより古い Claude Code では対象なしの挙動が違う）。
 - **Codex の場合**: 毎ラウンド、必ず `codex exec` を起動し、フレッシュインスタンスで
   独立したレビューを行う。現在のセッションによる自己レビューへフォールバックしてはならない。
   `scripts/codex_review.py` を使い、親側で固定したdiffを空の一時ディレクトリの子Codexへ渡す。
