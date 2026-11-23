@@ -48,14 +48,13 @@ output_path="${output_dir}/${output_name}"
 
 last_message=$(mktemp "${output_dir}/.codex-imagegen-last.XXXXXX")
 error_log=$(mktemp "${output_dir}/.codex-imagegen-error.XXXXXX")
+event_log=$(mktemp "${output_dir}/.codex-imagegen-events.XXXXXX")
 work_dir=$(mktemp -d "${TMPDIR:-/tmp}/codex-imagegen.XXXXXX")
 generated_path="${work_dir}/output.png"
 install_path=$(mktemp "${output_dir}/.codex-imagegen-install.XXXXXX")
 generated_root=${CODEX_IMAGEGEN_OUTPUT_ROOT:-${CODEX_HOME:-${HOME}/.codex}/generated_images}
-mkdir -p "$generated_root"
-generation_marker=$(mktemp "${generated_root}/.bridge-start.XXXXXX")
 cleanup() {
-  rm -f -- "$last_message" "$error_log" "$install_path" "$generation_marker"
+  rm -f -- "$last_message" "$error_log" "$event_log" "$install_path"
   rm -rf -- "$work_dir"
 }
 trap cleanup EXIT
@@ -86,20 +85,46 @@ trap cleanup EXIT
   --disable in_app_browser \
   --disable view_image \
   --disable apps \
+  --json \
   --color never \
   --output-last-message "$last_message" \
   -C "$work_dir" \
-  - >/dev/null 2>"$error_log" || {
+  - >"$event_log" 2>"$error_log" || {
     printf '%s\n' 'Codex ImageGen bridge failed; continue with the HTML overview only.' >&2
     exit 1
   }
+
+thread_id=$(python3 - "$event_log" <<'PY'
+import json
+import re
+import sys
+
+with open(sys.argv[1], encoding="utf-8", errors="replace") as events:
+    for line in events:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "thread.started":
+            thread_id = event.get("thread_id")
+            if isinstance(thread_id, str) and re.fullmatch(r"[A-Za-z0-9-]+", thread_id):
+                print(thread_id)
+                raise SystemExit(0)
+            raise SystemExit(1)
+raise SystemExit(1)
+PY
+) || {
+  printf '%s\n' 'Codex did not report a valid thread ID; continue with the HTML overview only.' >&2
+  exit 1
+}
+generated_dir="${generated_root}/${thread_id}"
 
 generated_candidate=""
 generated_count=0
 while IFS= read -r -d '' candidate; do
   generated_candidate=$candidate
   generated_count=$((generated_count + 1))
-done < <(find "$generated_root" -type f -name '*.png' -newer "$generation_marker" -print0)
+done < <([[ -d "$generated_dir" ]] && find "$generated_dir" -type f -name '*.png' -print0)
 [[ "$generated_count" -eq 1 ]] || {
   printf '%s\n' 'Codex did not produce exactly one new PNG; continue with the HTML overview only.' >&2
   exit 1
