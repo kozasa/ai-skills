@@ -42,6 +42,24 @@ R1は変更全体を対象とする。R2以降は修正差分と影響範囲に�
 
 - **Claude Code の場合**: Skill ツールで `code-review` を起動する（effort: medium）。
   自分の記憶や直前の作業内容からの推測でレビューを代用してはならない。
+  R1は対象なしで起動する（2.1.329以降、対象なしは多くのモデルでブランチ全体を既定ブランチと
+  比べてレビューし、複数commitで差分を失う不具合も同じ版で直った）。追跡中ファイルの未コミット変更は
+  含まれるが、未追跡ファイルは含まれないため、R1の前に `git status` で未追跡ファイルが無いか確かめ、
+  あれば `git add -N <path>` してから起動する。
+  ただし `code-review` の指示（Phase 0）の引用では、対象なしは upstream があればそれと比べるとあり、
+  CHANGELOG の「既定ブランチと比べる」と食い違う。そのため R1 の前に
+  `git rev-parse --abbrev-ref @{upstream}` と既定ブランチ（`git rev-parse --abbrev-ref origin/HEAD`）を確かめ、
+  対象なしで起動するのは両方が基準ブランチ（`origin/main` 等）と一致するときだけにする。
+  どちらかが基準ブランチと違う（push 済みの同名ブランチ、基準が `origin/release` で既定が `origin/main` など）か
+  取れないときは、比べる相手を `code-review` に任せず親の側で固定する。親が三点差分
+  `git diff <基準ブランチ>...HEAD` と未コミット変更 `git diff HEAD`（未追跡ファイルは先に `git add -N`）を
+  リポジトリの外の一時ファイルに書き出し、その差分ファイルを対象として渡す。
+  例: `medium <差分ファイル> この差分ファイル（基準ブランチ <基準ブランチ> との三点差分と未コミット変更）の変更をレビューする`。
+  R2以降は、記録した対象パス（準備の手順4の欄）を `code-review` の対象として並べて渡す。
+  例: `/code-review medium <path1> <path2>`（Skill ツールなら args に `medium <path1> <path2>`）。
+  Codex の `--focus-path` と同じ考え方で、対象パスの外を探索し直すラウンドにしない。
+  出典: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md#21329
+  （これより古い Claude Code では対象なしの挙動が違う）。
 - **Codex の場合**: 毎ラウンド、必ず `codex exec` を起動し、フレッシュインスタンスで
   独立したレビューを行う。現在のセッションによる自己レビューへフォールバックしてはならない。
   `scripts/codex_review.py` を使い、親側で固定したdiffを空の一時ディレクトリの子Codexへ渡す。
